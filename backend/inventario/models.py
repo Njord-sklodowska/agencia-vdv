@@ -135,16 +135,6 @@ class Vehiculo(models.Model):
             if (self.kilometraje or 0) > 500:
                 raise ValidationError({"kilometraje": "Un vehículo 0km no puede tener más de 500 km."})
         
-                    
-
-        if self.precio_costo is not None and self.precio is not None:
-            if self.precio < self.precio_costo:
-                import warnings
-                warnings.warn(
-                    f"El precio de venta ({self.precio}) es inferior al costo ({self.precio_costo}).",
-                    UserWarning
-                )
-        
         if self.entregado:
             if self.condicion_vehiculo == '0km' and not self.patente:
                 raise ValidationError({'patente': 'Para marcar como entregado un 0km debe tener patente asignada.'})

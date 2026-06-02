@@ -50,23 +50,20 @@ class VehiculoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['fecha_alta', 'fecha_cambio_estado', 'updated_at']
 
-    def validate_estado(self, value):
-        if value == 'vendido':
-            raise serializers.ValidationError(
-                'El estado vendido solo puede ser asignado por el sistema al confirmar una operación de venta.'
-            )
-        return value
-
     def validate(self, data):
-        instance = self.instance or Vehiculo()
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        try:
-            instance.clean()
-        except Exception as e:
-            raise serializers.ValidationError(e.message_dict)
+        precio = data.get('precio')
+        precio_costo = data.get('precio_costo')
+        
+        if precio and precio_costo and precio < precio_costo:
+            self._precio_bajo_costo = True
+        
         return data
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if getattr(self, '_precio_bajo_costo', False):
+            data['advertencia'] = 'El precio de venta es inferior al costo.'
+        return data
 
 class TallerSerializer(serializers.ModelSerializer):
     class Meta:
