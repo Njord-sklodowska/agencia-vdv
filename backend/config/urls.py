@@ -1,5 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -9,10 +12,20 @@ from rest_framework_simplejwt.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path('api/', include('sucursal.urls')),
-    path('api/', include('usuario.urls')),
+    # APPS DEL PROYECTO
+    path('api/usuario/', include('usuario.urls')),
+    path('api/sucursal/', include('sucursal.urls')),
+    path('api/inventario/', include('inventario.urls')),
+    path('api/ventas/', include('ventas.urls')),
 
-    # jwt loggin lock and lock-out o llave cerrada y abierta!!!
+    # JWT AUTH
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # redirect opcional al admin
+    path('', lambda request: redirect('admin:index')),
 ]
+
+# MEDIA FILES
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
