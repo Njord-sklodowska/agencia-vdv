@@ -33,7 +33,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'sucursales',
     'inventario',
-    #'core',  
+    #'core', 
+    'ventas', 
    
     'rest_framework',
     'corsheaders',

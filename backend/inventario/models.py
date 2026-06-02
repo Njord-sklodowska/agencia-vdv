@@ -330,6 +330,21 @@ class VehiculoUsado(models.Model):
         
         if self.precio_tasacion_final is not None and self.precio_tasacion_final <= 0:
             raise ValidationError({'precio_tasacion_final': 'El precio de tasación debe ser mayor a cero.'})
+        
+        hoy = datetime.date.today()
+
+        if self.fecha_ingreso and self.fecha_ingreso > hoy:
+            raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser futura.'})
+        if self.fecha_ingreso and (hoy - self.fecha_ingreso).days > 30:
+            raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser anterior a 30 días.'})
+
+        if self.fecha_evaluacion:
+            if self.fecha_evaluacion > hoy:
+                raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser futura.'})
+            if (hoy - self.fecha_evaluacion).days > 30:
+                raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser anterior a 30 días.'})
+            if self.fecha_ingreso and self.fecha_evaluacion > self.fecha_ingreso:
+                raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'})
 
 
     def save(self, *args, **kwargs):
