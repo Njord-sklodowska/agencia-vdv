@@ -9,14 +9,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    'sucursales',
-    'inventario',
-    'ventas',
-
+    'sucursal',
     'usuario',
     'cliente',
+    'inventario',
     'auditoria',
-    'sucursal',
 
     'rest_framework',
     'corsheaders',

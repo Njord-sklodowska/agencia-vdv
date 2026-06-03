@@ -3,17 +3,24 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from inventario.models import Vehiculo, Marca, Modelo
-from sucursales.models import SucursalTemp
+from sucursal.models import Sucursal
 
 class VehiculoModelTest(TestCase):
 
     def setUp(self):
-        self.sucursal = SucursalTemp.objects.create(nombre='Sucursal Test')
-        self.marca = Marca.objects.create(nombre='Toyota')
+        self.sucursal = Sucursal.objects.create(
+            nombre='Sucursal Test',
+            direccion='Test',
+            ciudad='Test',
+            provincia='Test'
+        )
+
+        self.marca = Marca.objects.create(nombre="Toyota")
+
         self.modelo = Modelo.objects.create(
+            nombre="Corolla",
             marca=self.marca,
-            nombre='Corolla',
-            carroceria='sedan'
+            carroceria="sedan"
         )
 
         self.datos_base = {

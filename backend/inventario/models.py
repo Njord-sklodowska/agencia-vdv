@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 from django.utils import timezone
 import datetime
 import mimetypes
-from sucursales.models import SucursalTemp
+from sucursal.models import Sucursal
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 
@@ -30,10 +30,6 @@ class Modelo(models.Model):
     carroceria = models.CharField(max_length=20, choices=CARROCERIA_CHOICES)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['marca', 'nombre'], name='unique_modelo_por_marca')
-        ]
 
     def __str__(self):
         return f"{self.marca.nombre} {self.nombre}"
@@ -56,7 +52,7 @@ class Vehiculo(models.Model):
     PROCEDENCIA_CHOICES = [('compra_directa', 'Compra Directa'), ('parte_de_pago', 'Parte de Pago')]
     
     # Relaciones
-    sucursal = models.ForeignKey('sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='vehiculos')
+    sucursal = models.ForeignKey('sucursal.Sucursal', on_delete=models.PROTECT, related_name='vehiculos')
     marca = models.ForeignKey(Marca, on_delete=models.PROTECT)
     modelo = models.ForeignKey(Modelo, on_delete=models.PROTECT)
 
@@ -301,18 +297,7 @@ class VehiculoUsado(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(porcentaje_deduccion__isnull=True) |
-                      models.Q(porcentaje_deduccion__gte=15.00, porcentaje_deduccion__lte=20.00),
-                name='check_porcentaje_deduccion_rango'
-            ),
-            models.CheckConstraint(
-                check=models.Q(precio_tasacion_final__gt=0),
-                name='check_precio_tasacion_positivo'
-            ),
-        ]
+    
 
     def clean(self):
         if self.vehiculo_id and self.vehiculo.condicion_vehiculo != 'usado':
@@ -362,10 +347,10 @@ class TrasladoVehiculo(models.Model):
         Vehiculo, on_delete=models.PROTECT, related_name='traslados'
     )
     sucursal_origen = models.ForeignKey(
-        'sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='traslados_salida'
+        'sucursal.Sucursal', on_delete=models.PROTECT, related_name='traslados_salida'
     )
     sucursal_destino = models.ForeignKey(
-        'sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='traslados_entrada'
+        'sucursal.Sucursal', on_delete=models.PROTECT, related_name='traslados_entrada'
     )
     usuario_autoriza = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='traslados_autorizados'
