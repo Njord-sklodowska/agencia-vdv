@@ -1,0 +1,255 @@
+import React, { useState } from 'react';
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// DATOS SIMULADOS ENUM: 'activo', 'inactivo', 'deudor'
+const clientesSimulados = [
+  {
+    id_cliente: 1,
+    tipo_persona: 'FISICA',
+    nombre: 'Juan Carlos',
+    apellido: 'Pérez',
+    razon_social: null,
+    dni: '34.567.890',
+    cuit_cuil: '20-34567890-9',
+    localidad: 'Concepción',
+    telefono: '3865-421122',
+    email: 'juan.perez@email.com',
+    estado: 'activo'
+  },
+  {
+    id_cliente: 2,
+    tipo_persona: 'JURIDICA',
+    nombre: null,
+    apellido: null,
+    razon_social: 'Del Valle Automotores S.A.',
+    dni: null,
+    cuit_cuil: '30-76543210-8',
+    localidad: 'San Miguel de Tucumán',
+    telefono: '381-4556677',
+    email: 'contacto@delvalle.com',
+    estado: 'deudor'
+  },
+  {
+    id_cliente: 3,
+    tipo_persona: 'FISICA',
+    nombre: 'María Laura',
+    apellido: 'Gómez',
+    razon_social: null,
+    dni: '40.888.999',
+    cuit_cuil: '27-40888999-4',
+    localidad: 'La Banda',
+    telefono: '3865-998877',
+    email: 'laura.gomez@email.com',
+    estado: 'inactivo'
+  }
+];
+
+function ClientesPage() {
+  const [busqueda, setBusqueda] = useState('');
+  const [listaClientes, setListaClientes] = useState(clientesSimulados);
+
+  // 🔢 CONFIGURACIÓN DE TU PAGINACIÓN (30 líneas fijas por página)
+  const [paginaActual, setPaginaActual] = useState(1);
+  const clientesPorPagina = 30; 
+
+  const indiceUltimoCliente = paginaActual * clientesPorPagina;
+  const indicePrimerCliente = indiceUltimoCliente - clientesPorPagina;
+  const clientesDeLaPagina = listaClientes.slice(indicePrimerCliente, indiceUltimoCliente);
+  const totalPaginas = Math.ceil(listaClientes.length / clientesPorPagina);
+  const filasVisuales = Array.from({ length: clientesPorPagina });
+
+  // 🔍 FUNCIÓN DE NORMALIZACIÓN OPTIMIZADA (Ignora acentos, mayúsculas, puntos y guiones)
+  const normalizarTexto = (texto) => {
+    if (!texto) return '';
+    return texto
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Quita acentos
+      .replace(/[\.\-]/g, '')         // Quita puntos y guiones para continuidad numérica
+      .trim();
+  };
+
+  // Renderizador estético de Estados según los ENUM (.DOCX)
+  const renderEstado = (estado) => {
+    const estilos = {
+      activo: { bg: '#5cb85c', texto: 'ACTIVO' },
+      inactivo: { bg: '#d9534f', texto: 'INACTIVO' },
+      deudor: { bg: '#e67e22', texto: 'DEUDOR' }
+    };
+    const config = estilos[estado] || { bg: '#777', texto: 'DESCONOCIDO' };
+    
+    return (
+      <span className="badge fw-bold px-3 py-1 text-white shadow-sm" style={{ backgroundColor: config.bg, borderRadius: '12px', fontSize: '0.75rem' }}>
+        {config.texto}
+      </span>
+    );
+  };
+
+  return (
+    <div className="container-fluid p-0" style={{ minHeight: '100%' }}>
+      
+      {/* Migas de pan */}
+      <div className="mb-2 text-muted small fw-semibold ps-1" style={{ letterSpacing: '0.5px' }}>
+        Clientes &gt; <span style={{ color: '#4a5568' }}>Listado de clientes</span>
+      </div>
+
+      {/* CONTENEDOR PRINCIPAL */}
+      <div className="card shadow-sm border-secondary border-opacity-25" style={{ borderRadius: '8px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
+        
+        {/* ENCABEZADO TITULO */}
+        <div className="p-3" style={{ backgroundColor: '#2c3e50' }}>
+          <h2 className="text-white m-0 fw-bold fs-3" style={{ fontFamily: 'sans-serif', letterSpacing: '0.5px' }}>
+            Listado de Clientes
+          </h2>
+        </div>
+
+        {/* BARRA DE ACCIONES Y FILTROS */}
+        <div className="d-flex justify-content-between align-items-center p-3 bg-white border-bottom border-secondary border-opacity-25 shadow-sm">
+          
+          {/* Buscador unificado estilo Bootstrap sin ID */}
+          <div className="input-group" style={{ width: '420px' }}>
+            <span className="input-group-text bg-light border-secondary border-opacity-50 text-muted px-3">
+              <Search size={18} strokeWidth={1.5} className="text-secondary opacity-75" />
+            </span>
+            <input 
+              type="text" 
+              className="form-control bg-light border-secondary border-opacity-50" 
+              placeholder="BUSCAR POR INICIAL DE NOMBRE, DNI, CUIT O CUIL..." 
+              style={{ fontSize: '0.8rem', letterSpacing: '0.5px', height: '42px' }}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+
+          {/* Botón de Acción Principal */}
+          <button 
+            className="btn fw-bold border-0 text-uppercase px-4 py-2 shadow-sm" 
+            style={{ backgroundColor: '#f0ad4e', color: '#000', fontSize: '0.8rem', letterSpacing: '0.5px', borderRadius: '6px', height: '42px' }}
+          >
+            Agregar Cliente
+          </button>
+        </div>
+
+        {/* TABLA DE CLIENTES */}
+        <div className="table-responsive bg-white">
+          <table className="table table-bordered align-middle mb-0 text-center" style={{ borderColor: '#cbd5e0', fontSize: '0.85rem' }}>
+            <thead>
+              <tr className="fw-bold text-dark" style={{ backgroundColor: '#cbd5e0' }}>
+                <th style={{ width: '5%', backgroundColor: '#a0aec0' }}>ID</th>
+                <th style={{ width: '23%', backgroundColor: '#a0aec0' }}>Nombre y Apellido / Razón Social</th>
+                <th style={{ width: '10%', backgroundColor: '#a0aec0' }}>DNI</th>
+                <th style={{ width: '13%', backgroundColor: '#a0aec0' }}>CUIT / CUIL</th>
+                <th style={{ width: '13%', backgroundColor: '#a0aec0' }}>Localidad / Ciudad</th>
+                <th style={{ width: '11%', backgroundColor: '#a0aec0' }}>Teléfono</th>
+                <th style={{ width: '11%', backgroundColor: '#a0aec0' }}>Email</th>
+                <th style={{ width: '8%', backgroundColor: '#a0aec0' }}>Estado</th>
+                <th style={{ width: '6%', backgroundColor: '#a0aec0' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filasVisuales.map((_, index) => {
+                const cliente = clientesDeLaPagina[index] || {};
+                
+                // 🔍 LÓGICA DE BÚSQUEDA EXCLUSIVA POR PREFIJO CORRELATIVO (SIN ID)
+                const texto = normalizarTexto(busqueda);
+                
+                const nombreCompleto = cliente.id_cliente && cliente.tipo_persona === 'FISICA'
+                  ? `${cliente.nombre} ${cliente.apellido}`
+                  : (cliente.razon_social || '');
+
+                const coincide = texto !== '' && cliente.id_cliente && (
+                  normalizarTexto(nombreCompleto).startsWith(texto) ||
+                  normalizarTexto(cliente.dni).startsWith(texto) ||
+                  normalizarTexto(cliente.cuit_cuil).startsWith(texto) ||
+                  normalizarTexto(cliente.localidad).startsWith(texto) ||
+                  normalizarTexto(cliente.estado).startsWith(texto)
+                );
+
+                // Alternado idéntico a Inventario y Resaltado Amarillo Simétrico (#f6d9a2)
+                const colorFondo = coincide 
+                  ? '#f6d9a2' 
+                  : (index % 2 === 0 ? '#ffffff' : '#c4c4c4ef');
+
+                return (
+                  <tr key={index} style={{ height: '40px', '--bs-table-bg': colorFondo }}>
+                    <td className="text-muted small">{cliente.id_cliente || ''}</td>
+                    
+                    {/* Nombre y Apellido / Razón Social */}
+                    <td className="text-start px-3 text-dark fw-medium">
+                      {nombreCompleto}
+                    </td>
+
+                    {/* DNI */}
+                    <td className="text-dark">
+                      {cliente.dni || '-'}
+                    </td>
+                    
+                    {/* CUIT / CUIL */}
+                    <td className="fw-mono text-dark">
+                      {cliente.cuit_cuil || ''}
+                    </td>
+
+                    {/* Localidad / Ciudad */}
+                    <td className="text-start px-3 text-dark">
+                      {cliente.localidad || ''}
+                    </td>
+
+                    <td className="text-dark">{cliente.telefono || ''}</td>
+                    <td className="text-start px-3 text-secondary">{cliente.email || ''}</td>
+                    
+                    {/* Estado con tus burbujas plenas de Inventario */}
+                    <td>{cliente.estado ? renderEstado(cliente.estado) : ''}</td>
+                    
+                    {/* Botones de acciones con tamaños originales (18px y stroke 1.5) */}
+                    <td>
+                      {cliente.id_cliente && (
+                        <div className="d-flex justify-content-center gap-3">
+                          <button className="btn btn-sm p-0 text-secondary opacity-70" title="Ver Detalle">
+                            <Eye size={18} strokeWidth={1.5} />
+                          </button>
+                          <button className="btn btn-sm p-0 text-secondary opacity-70" title="Editar">
+                            <Pencil size={18} strokeWidth={1.5} />
+                          </button>
+                          <button className="btn btn-sm p-0 text-secondary opacity-70" title="Eliminar">
+                            <Trash2 size={18} strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PIE DE PAGINACIÓN CLONADO RECTO DE INVENTARIO */}
+        <div className="d-flex justify-content-between align-items-center p-3 bg-light border-top border-secondary border-opacity-25">
+          <div className="text-muted small fw-semibold">
+            Mostrando página {paginaActual} de {totalPaginas || 1}
+          </div>
+          <div className="d-flex gap-2">
+            <button 
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+              disabled={paginaActual === 1}
+              onClick={() => setPaginaActual(prev => prev - 1)}
+            >
+              <ChevronLeft size={16} className="me-1" /> Anterior
+            </button>
+            <button 
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+              disabled={paginaActual === totalPaginas || totalPaginas === 0}
+              onClick={() => setPaginaActual(prev => prev + 1)}
+            >
+              Siguiente <ChevronRight size={16} className="ms-1" />
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+export default ClientesPage;

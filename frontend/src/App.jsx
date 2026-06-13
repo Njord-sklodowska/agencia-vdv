@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Importamos el Layout y las páginas
 import DashboardLayout from './layouts/DashboardLayout'
-import InventarioPage from './features/inventario/InventarioPage'
-import ClientesPage from './features/clientes/ClientesPage'
+import InventarioPage from './features/inventario/pages/InventarioPage'
+import ClientesPage from './features/clientes/page/clientesPage'
 
 function App() {
   return (

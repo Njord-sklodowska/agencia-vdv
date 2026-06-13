@@ -1,11 +1,11 @@
-import React from 'react';
-import { Search, Eye, Pencil, Trash2, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// DATOS SIMULADOS 100% COINCIDENTES CON EL MODELO DE BASE DE DATOS (.DOCX)
+// DATOS SIMULADOS ACTUALIZADOS (El ID 2 ahora está 'vendido')
 const vehiculosSimulados = [
   { 
     id_vehiculo: 1, 
-    id_sucursal: 1, // Sucursal Concepción
+    id_sucursal: 1, 
     condicion_vehiculo: 'usado', 
     patente: 'AA123BB', 
     vin: null, 
@@ -25,11 +25,11 @@ const vehiculosSimulados = [
     modelo_nombre: 'Cronos', 
     anio: 2026, 
     precio: 19800000.00, 
-    estado: 'en_stock' 
+    estado: 'vendido' 
   },
   { 
     id_vehiculo: 3, 
-    id_sucursal: 2, // Sucursal La Banda
+    id_sucursal: 2, 
     condicion_vehiculo: 'usado', 
     patente: 'AF999ZZ', 
     vin: null, 
@@ -42,10 +42,31 @@ const vehiculosSimulados = [
 ];
 
 function InventarioPage() {
-  // Generamos una grilla limpia de 14 filas para mantener la estética de Figma
-  const filasTotales = Array.from({ length: 14 });
+  const [busqueda, setBusqueda] = useState('');
+  const [listaVehiculos, setListaVehiculos] = useState(vehiculosSimulados);
 
-  // Renderizador estético de Estados según los ENUM de la Base de Datos
+  // CONFIGURACIÓN DE TU PAGINACIÓN (30 líneas fijas por página)
+  const [paginaActual, setPaginaActual] = useState(1);
+  const vehiculosPorPagina = 30; 
+
+  const indiceUltimoVehiculo = paginaActual * vehiculosPorPagina;
+  const indicePrimerVehiculo = indiceUltimoVehiculo - vehiculosPorPagina;
+  const vehiculosDeLaPagina = listaVehiculos.slice(indicePrimerVehiculo, indiceUltimoVehiculo);
+  const totalPaginas = Math.ceil(listaVehiculos.length / vehiculosPorPagina);
+  const filasVisuales = Array.from({ length: vehiculosPorPagina });
+
+  // 🔍 FUNCIÓN DE NORMALIZACIÓN (Ignora mayúsculas, minúsculas y acentos)
+  const normalizarTexto = (texto) => {
+    if (!texto) return '';
+    return texto
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  };
+
+  // Renderizador estético de Estados según los ENUM de la Base de Datos (Pills de Figma)
   const renderEstado = (estado) => {
     const estilos = {
       en_stock: { bg: '#5cb85c', texto: 'EN STOCK' },
@@ -64,7 +85,7 @@ function InventarioPage() {
   return (
     <div className="container-fluid p-0" style={{ minHeight: '100%' }}>
       
-      {/* Migas de pan de la esquina superior */}
+      {/* Migas de pan */}
       <div className="mb-2 text-muted small fw-semibold ps-1" style={{ letterSpacing: '0.5px' }}>
         Inventario &gt; <span style={{ color: '#4a5568' }}>Listado de vehículos</span>
       </div>
@@ -72,7 +93,7 @@ function InventarioPage() {
       {/* CONTENEDOR PRINCIPAL */}
       <div className="card shadow-sm border-secondary border-opacity-25" style={{ borderRadius: '8px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
         
-        {/* ENCABEZADO */}
+        {/* ENCABEZADO TITULO */}
         <div className="p-3" style={{ backgroundColor: '#2c3e50' }}>
           <h2 className="text-white m-0 fw-bold fs-3" style={{ fontFamily: 'sans-serif', letterSpacing: '0.5px' }}>
             Listado de Vehículos
@@ -90,9 +111,10 @@ function InventarioPage() {
             <input 
               type="text" 
               className="form-control bg-light border-secondary border-opacity-50" 
-              placeholder="BUSCAR POR MARCA O MODELO..." 
+              placeholder="BUSCAR POR MARCA, MODELO, ESTADO O CONDICION..." 
               style={{ fontSize: '0.8rem', letterSpacing: '0.5px', height: '42px' }}
-              disabled
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
 
@@ -105,7 +127,7 @@ function InventarioPage() {
           </button>
         </div>
 
-        {/* TABLA DE STOCK CON LAS CLAVES REALES DEL BACKEND */}
+        {/* TABLA DE STOCK CON ESTÉTICA UNIFICADA A CLIENTES */}
         <div className="table-responsive bg-white">
           <table className="table table-bordered align-middle mb-0 text-center" style={{ borderColor: '#cbd5e0', fontSize: '0.85rem' }}>
             <thead>
@@ -121,22 +143,38 @@ function InventarioPage() {
               </tr>
             </thead>
             <tbody>
-              {filasTotales.map((_, index) => {
-                // Evaluamos si existe un registro en esta posición del índice
-                const auto = vehiculosSimulados[index] || {};
+              {filasVisuales.map((_, index) => {
+                const auto = vehiculosDeLaPagina[index] || {};
                 
+                // 🔍 LÓGICA DE BÚSQUEDA MULTI-CRITERIO
+                const texto = normalizarTexto(busqueda);
+                const textoSinEspacios = texto.replace(/\s+/g, ''); 
+
+                const coincide = texto !== '' && auto.id_vehiculo && (
+                  normalizarTexto(auto.marca_nombre).startsWith(texto) ||
+                  normalizarTexto(auto.modelo_nombre).startsWith(texto) ||
+                  normalizarTexto(auto.condicion_vehiculo).startsWith(texto) ||
+                  normalizarTexto(auto.condicion_vehiculo).startsWith(textoSinEspacios) ||
+                  normalizarTexto(auto.estado).startsWith(texto) ||
+                  normalizarTexto(auto.estado?.replace('_', ' ')).startsWith(texto)
+                );
+
+                // Alternado idéntico a Clientes y Resaltado Amarillo Simétrico (#f6d9a2)
+                const colorFondo = coincide 
+                  ? '#f6d9a2' 
+                  : (index % 2 === 0 ? '#ffffff' : '#c4c4c4ef');
+
                 return (
-                  <tr key={index} style={{ height: '40px', backgroundColor: index % 2 === 0 ? '#ffffff' : '#f7fafc' }}>
+                  <tr key={index} style={{ height: '40px', '--bs-table-bg': colorFondo }}>
                     <td className="text-muted small">{auto.id_vehiculo || ''}</td>
-                    <td className="text-start px-3 fw-medium">
+                    <td className="text-start px-3 text-dark fw-medium">
                       {auto.marca_nombre ? `${auto.marca_nombre} ${auto.modelo_nombre}` : ''}
                     </td>
-                    <td>{auto.anio || ''}</td>
+                    <td className="text-dark">{auto.anio || ''}</td>
                     <td className="text-uppercase small fw-semibold text-secondary">
                       {auto.condicion_vehiculo || ''}
                     </td>
-                    {/* LOGICA CONDICIONAL: Si es 0km muestra el VIN, sino la Patente */}
-                    <td className="fw-mono small">
+                    <td className="fw-mono text-dark">
                       {auto.condicion_vehiculo === '0km' ? auto.vin : auto.patente}
                     </td>
                     <td className="text-end px-3 fw-bold text-dark">
@@ -164,6 +202,30 @@ function InventarioPage() {
             </tbody>
           </table>
         </div>
+
+        {/* PIE DE PAGINACIÓN CLONADO RECTO DE CLIENTES */}
+        <div className="d-flex justify-content-between align-items-center p-3 bg-light border-top border-secondary border-opacity-25">
+          <div className="text-muted small fw-semibold">
+            Mostrando página {paginaActual} de {totalPaginas || 1}
+          </div>
+          <div className="d-flex gap-2">
+            <button 
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+              disabled={paginaActual === 1}
+              onClick={() => setPaginaActual(prev => prev - 1)}
+            >
+              <ChevronLeft size={16} className="me-1" /> Anterior
+            </button>
+            <button 
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+              disabled={paginaActual === totalPaginas || totalPaginas === 0}
+              onClick={() => setPaginaActual(prev => prev + 1)}
+            >
+              Siguiente <ChevronRight size={16} className="ms-1" />
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

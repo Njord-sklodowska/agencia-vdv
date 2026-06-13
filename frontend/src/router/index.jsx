@@ -1,7 +1,9 @@
+
+import VehiculosForm from '../features/inventario/components/VehiculosForm';
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import AuthLayout from '../layouts/AuthLayout'
 import DashboardLayout from '../layouts/DashboardLayout'
-import InventarioPage from '../features/inventario/InventarioPage'
+import InventarioPage from '../features/inventario/pages/InventarioPage'
 
 export const router = createBrowserRouter([
   {
