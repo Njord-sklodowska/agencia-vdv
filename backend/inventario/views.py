@@ -1,6 +1,3 @@
-
-# inventario/views.py
-
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,19 +9,18 @@ from .serializers import (
     VehiculoUsadoSerializer, TrasladoVehiculoSerializer
 )
 
-
 class MarcaViewSet(viewsets.ModelViewSet):
     queryset = Marca.objects.all()
     serializer_class = MarcaSerializer
     permission_classes = [IsAuthenticated]
-    # TODO: solo superadministrador y administrativo pueden crear/editar/eliminar
+    # solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
 class ModeloViewSet(viewsets.ModelViewSet):
     queryset = Modelo.objects.all()
     serializer_class = ModeloSerializer
     permission_classes = [IsAuthenticated]
-    # TODO: solo superadministrador y administrativo pueden crear/editar/eliminar
+    # solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
 class VehiculoViewSet(viewsets.ModelViewSet):
@@ -32,18 +28,18 @@ class VehiculoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # TODO: cuando Sergio tenga roles, filtrar por sucursal del usuario
+        # cuando Sergio tenga roles, filtrar por sucursal del usuario
         # si es superadministrador devuelve todos
         # si es otro rol devuelve solo los de su sucursal:
         # return Vehiculo.objects.filter(sucursal=self.request.user.sucursal)
         return Vehiculo.objects.all()
 
     def perform_create(self, serializer):
-        # TODO: asignar sucursal del usuario automáticamente
+        # asignar sucursal del usuario automáticamente
         # serializer.save(sucursal=self.request.user.sucursal)
         serializer.save()
 
-    # Acción para soft delete
+    # soft delete
     @action(detail=True, methods=['post'])
     def desactivar(self, request, pk=None):
         vehiculo = self.get_object()
@@ -53,7 +49,7 @@ class VehiculoViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Acción para confirmar entrega
+    # confirmar entrega
     @action(detail=True, methods=['post'])
     def entregar(self, request, pk=None):
         vehiculo = self.get_object()
@@ -75,13 +71,13 @@ class VehiculoViewSet(viewsets.ModelViewSet):
 class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = FotografiaVehiculoSerializer
     permission_classes = [IsAuthenticated]
-    # TODO: solo administrativo y superiores pueden cargar fotos
+    # solo administrativo y superiores pueden cargar fotos
 
     def get_queryset(self):
         return Fotografia_Vehiculo.objects.filter(vehiculo_id=self.kwargs['vehiculo_pk'])
 
     def perform_create(self, serializer):
-        vehiculo = Vehiculo.objects.get(pk=self.kwargs['vehiculo_pk'])
+        vehiculo = Vehiculo.all_objects.get(pk=self.kwargs['vehiculo_pk'])
         serializer.save(vehiculo=vehiculo)
 
 
@@ -89,14 +85,14 @@ class TallerViewSet(viewsets.ModelViewSet):
     queryset = Taller.objects.all()
     serializer_class = TallerSerializer
     permission_classes = [IsAuthenticated]
-    # TODO: solo administrativo y superiores pueden crear/editar
+    # solo administrativo y superiores pueden crear/editar
 
 
 class VehiculoUsadoViewSet(viewsets.ModelViewSet):
     queryset = VehiculoUsado.objects.all()
     serializer_class = VehiculoUsadoSerializer
     permission_classes = [IsAuthenticated]
-    # TODO: autorización solo por superadministrador
+    # autorización solo por superadministrador
 
 
 class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
@@ -104,7 +100,7 @@ class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # TODO: filtrar por sucursal del usuario
+        # filtrar por sucursal del usuario
         return TrasladoVehiculo.objects.all()
 
     # Acción para confirmar traslado

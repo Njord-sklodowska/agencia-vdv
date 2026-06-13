@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 from django.utils import timezone
 import datetime
 import mimetypes
-from sucursales.models import SucursalTemp
+
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 
@@ -85,7 +85,6 @@ class Vehiculo(models.Model):
     activo = models.BooleanField(default=True)
     entregado = models.BooleanField(default=False)
 
-
     # Fechas
     fecha_alta = models.DateTimeField(auto_now_add=True)
     fecha_cambio_estado = models.DateTimeField(null=True, blank=True)
@@ -96,7 +95,6 @@ class Vehiculo(models.Model):
     puertas = models.SmallIntegerField(choices=[(2,2), (3,3), (4,4), (5,5)])
     motor = models.CharField(max_length=50)
     traccion = models.CharField(max_length=15, choices=TRACCION_CHOICES, null=True, blank=True)
-    
     numero_serie_motor = models.CharField(max_length=100)
     procedencia = models.CharField(max_length=20, choices=PROCEDENCIA_CHOICES, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,7 +144,7 @@ class Vehiculo(models.Model):
         if not self.pk:
             self.fecha_cambio_estado = timezone.now()
         else:
-            original = Vehiculo.objects.filter(pk=self.pk).first()
+            original = Vehiculo.all_objects.filter(pk=self.pk).first()
             if original and original.estado != self.estado:
                 self.fecha_cambio_estado = timezone.now()
         
@@ -276,10 +274,6 @@ class VehiculoUsado(models.Model):
         null=True, blank=True, related_name='evaluaciones'
     )
     
-    #operacion_origen = models.ForeignKey(
-        #'ventas.OperacionVenta', on_delete=models.SET_NULL,
-        #null=True, blank=True, related_name='vehiculos_recibidos')
-
     usuario_autoriza = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='vehiculos_autorizados'
@@ -382,10 +376,14 @@ class TrasladoVehiculo(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def clean(self):
-        if not self.pk and self.vehiculo_id and self.vehiculo.estado == 'vendido':
+def clean(self):
+    if not self.pk and self.vehiculo_id:
+        if self.vehiculo.estado == 'vendido':
             raise ValidationError({'vehiculo': 'No se puede trasladar un vehículo vendido.'})
-            
+        if self.sucursal_origen_id and self.vehiculo.sucursal_id != self.sucursal_origen_id:
+            raise ValidationError({'sucursal_origen': 'La sucursal origen no coincide con la sucursal actual del vehículo.'})
+        
+    
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

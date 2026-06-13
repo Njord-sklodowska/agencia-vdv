@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, VehiculoUsado, TrasladoVehiculo
 import datetime 
+from decimal import Decimal
 
 class MarcaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -97,52 +98,24 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         porcentaje = self.initial_data.get('porcentaje_deduccion')
 
         if taller and precio_info_auto and porcentaje:
-            esperado = float(precio_info_auto) - (float(precio_info_auto) * float(porcentaje) / 100)
-            if abs(float(value) - esperado) > 0.01:
-                raise serializers.ValidationError(
-                    f'Con taller el precio debe ser {esperado:.2f} según Info Auto y porcentaje ingresado.'
-                )
+            try:
+                esperado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))
+                if abs(Decimal(str(value)) - esperado) > Decimal('0.01'):
+                    raise serializers.ValidationError(
+                        f'Con taller el precio debe ser {esperado:.2f} según Info Auto y porcentaje ingresado.'
+                    )
+            except serializers.ValidationError:
+                raise
+            except Exception as e:
+                raise serializers.ValidationError('Los valores numéricos ingresados no son válidos.')
         return value
+
     def validate_porcentaje_deduccion(self, value):
         if value is not None and (value < 15 or value > 20):
             raise serializers.ValidationError(
                 'El porcentaje de deducción debe estar entre 15 y 20.'
             )
-        return value      
-
-    def validate(self, data):
-        taller = data.get('taller')
-
-        if not taller:
-            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion']:
-                if data.get(campo) is not None:
-                    raise serializers.ValidationError(
-                        {campo: 'Este campo debe ser nulo cuando no hay taller asignado.'}
-                    )
-        else:
-            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion',
-                          'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior']:
-                if not data.get(campo):
-                    raise serializers.ValidationError(
-                        {campo: 'Este campo es obligatorio cuando hay taller asignado.'}
-                    )
-
-        instance = self.instance or VehiculoUsado()
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        try:
-            instance.clean()
-        except Exception as e:
-            raise serializers.ValidationError(e.message_dict)
-        
-        fecha_ingreso = data.get('fecha_ingreso')
-        fecha_evaluacion = data.get('fecha_evaluacion')
-        if fecha_ingreso and fecha_evaluacion and fecha_evaluacion > fecha_ingreso:
-            raise serializers.ValidationError(
-                {'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'}
-            )
-
-        return data
+        return value
 
     def validate_fecha_ingreso(self, value):
         hoy = datetime.date.today()
@@ -160,7 +133,39 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('La fecha de evaluación no puede ser futura.')
         if (hoy - value).days > 30:
             raise serializers.ValidationError('La fecha de evaluación no puede ser anterior a 30 días.')
-        return value    
+        return value
+
+    def validate(self, data):
+        vehiculo = data.get('vehiculo')
+        if vehiculo and vehiculo.condicion_vehiculo != 'usado':
+            raise serializers.ValidationError(
+                {'vehiculo': 'Solo se pueden registrar vehículos con condición usado.'}
+            )
+
+        taller = data.get('taller')
+        if not taller:
+            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion']:
+                if data.get(campo) is not None:
+                    raise serializers.ValidationError(
+                        {campo: 'Este campo debe ser nulo cuando no hay taller asignado.'}
+                    )
+        else:
+            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion',
+                          'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior']:
+                if not data.get(campo):
+                    raise serializers.ValidationError(
+                        {campo: 'Este campo es obligatorio cuando hay taller asignado.'}
+                    )
+
+        fecha_ingreso = data.get('fecha_ingreso')
+        fecha_evaluacion = data.get('fecha_evaluacion')
+        if fecha_ingreso and fecha_evaluacion and fecha_evaluacion > fecha_ingreso:
+            raise serializers.ValidationError(
+                {'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'}
+            )
+
+        return data
+    
     
 class TrasladoVehiculoSerializer(serializers.ModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
