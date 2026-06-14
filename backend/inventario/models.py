@@ -4,9 +4,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 from django.utils import timezone
 import datetime
 import mimetypes
-
+from sucursal.models import Sucursal
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
+
 
 # Marca =============================================================================
 class Marca(models.Model):
@@ -30,10 +31,6 @@ class Modelo(models.Model):
     carroceria = models.CharField(max_length=20, choices=CARROCERIA_CHOICES)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['marca', 'nombre'], name='unique_modelo_por_marca')
-        ]
 
     def __str__(self):
         return f"{self.marca.nombre} {self.nombre}"
@@ -295,18 +292,7 @@ class VehiculoUsado(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(porcentaje_deduccion__isnull=True) |
-                      models.Q(porcentaje_deduccion__gte=15.00, porcentaje_deduccion__lte=20.00),
-                name='check_porcentaje_deduccion_rango'
-            ),
-            models.CheckConstraint(
-                check=models.Q(precio_tasacion_final__gt=0),
-                name='check_precio_tasacion_positivo'
-            ),
-        ]
+    
 
     def clean(self):
         if self.vehiculo_id and self.vehiculo.condicion_vehiculo != 'usado':

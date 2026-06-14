@@ -7,28 +7,35 @@ from sucursal.models import Sucursal
 
 class VehiculoModelTest(TestCase):
 
-    def setUp(self):
-        self.sucursal = self.Sucursal.objects.create(nombre='Sucursal Test')
-        self.marca = Marca.objects.create(nombre='Toyota')
-        self.modelo = Modelo.objects.create(
-            marca=self.marca,
-            nombre='Corolla',
-            carroceria='sedan'
+ def setUp(self):
+    self.sucursal = Sucursal.objects.create(
+        nombre='Sucursal Test',
+        direccion='Test',
+        ciudad='Test',
+        provincia='Test'
+    )
+
+    self.marca = Marca.objects.create(nombre="Toyota")
+
+    self.modelo = Modelo.objects.create(
+        nombre="Corolla",
+        marca=self.marca,
+        carroceria="sedan"
         )
 
-        self.datos_base = {
-            'sucursal': self.sucursal,
-            'marca': self.marca,
-            'modelo': self.modelo,
-            'color': 'blanco',
-            'precio_costo': 10000,
-            'precio': 12000,
-            'descripcion_tecnica': 'test',
-            'combustible': 'nafta',
-            'transmision': 'manual',
-            'puertas': 4,
-            'motor': '1.6',
-            'numero_serie_motor': 'MOTOR123',
+    self.datos_base = {
+        'sucursal': self.sucursal,
+        'marca': self.marca,
+        'modelo': self.modelo,
+        'color': 'blanco',
+        'precio_costo': 10000,
+        'precio': 12000,
+        'descripcion_tecnica': 'test',
+        'combustible': 'nafta',
+        'transmision': 'manual',
+        'puertas': 4,
+        'motor': '1.6',
+        'numero_serie_motor': 'MOTOR123',
         }
 
     # --- 0KM ---

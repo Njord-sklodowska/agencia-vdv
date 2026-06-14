@@ -19,8 +19,8 @@ class OperacionVenta(models.Model):
     # Relaciones
     sucursal = models.ForeignKey('sucursal.Sucursal', on_delete=models.PROTECT, related_name='operaciones')
     # TODO: Cambiar a 'clientes.Cliente' cuando el módulo de sergiio esté listo
-    cliente = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='operaciones_titular', null=True, blank=True)
-    cliente_cotitular = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='operaciones_cotitular', null=True, blank=True)
+    cliente = models.ForeignKey('clientes.Cliente', on_delete=models.PROTECT, related_name='operaciones_titular', null=True, blank=True)
+    cliente_cotitular = models.ForeignKey('clientes.Cliente', null=True, blank=True, on_delete=models.PROTECT, related_name='operaciones_cotitular')
     
     vehiculo_vendido = models.ForeignKey('inventario.Vehiculo', on_delete=models.PROTECT, related_name='operaciones_venta')
     vehiculo_usado_entregado = models.ForeignKey('inventario.Vehiculo', on_delete=models.PROTECT, related_name='operaciones_compra', null=True, blank=True)
@@ -176,8 +176,7 @@ class Anticipo(models.Model):
         'inventario.Vehiculo', on_delete=models.PROTECT, related_name='anticipos'
     )
     # cambiar a 'clientes.Cliente' cuando Sergio termine ===============================
-    cliente = models.ForeignKey(
-        'auth.User', on_delete=models.PROTECT, related_name='anticipos'
+    cliente = models.ForeignKey('clientes.Cliente', on_delete=models.PROTECT, related_name='anticipos'
     )
     usuario_registro = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='anticipos_registrados'
