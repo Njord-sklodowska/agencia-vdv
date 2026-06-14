@@ -11,12 +11,13 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'sucursal',
     'usuario',
-    'cliente',
+    'clientes',
     'inventario',
     'auditoria',
 
     'rest_framework',
     'corsheaders',
+    'parametro_sistema',
 
     'django.contrib.admin',
     'django.contrib.auth',
