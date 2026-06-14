@@ -1,45 +1,36 @@
-
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import AuthLayout from '../layouts/AuthLayout';
+import DashboardLayout from '../layouts/DashboardLayout';
+import InventarioPage from '../features/inventario/pages/InventarioPage';
 import VehiculosForm from '../features/inventario/components/VehiculosForm';
-import { createBrowserRouter, Navigate } from 'react-router-dom'
-import AuthLayout from '../layouts/AuthLayout'
-import DashboardLayout from '../layouts/DashboardLayout'
-import InventarioPage from '../features/inventario/pages/InventarioPage'
 
 export const router = createBrowserRouter([
   {
-    // Rutas públicas (Login)
+    // --- 1. RUTAS PÚBLICAS ---
     path: '/login',
-    element: <AuthLayout />,
-    children: [
-      {
-        index: true,
-        element: (
-          <div className="card shadow p-4" style={{ width: '350px' }}>
-            <h3 className="text-center mb-3 fw-bold">Iniciar Sesión</h3>
-            <div className="mb-3">
-              <label className="form-label text-muted smallfw-semibold">Usuario / CUIT</label>
-              <input type="text" className="form-control" placeholder="Ej: 20-12345678-9" disabled />
-            </div>
-            <button className="btn btn-primary w-100 fw-semibold" disabled>
-              Simular Login (Próximamente)
-            </button>
-          </div>
-        )
-      }
-    ]
+    element: <AuthLayout />
   },
   {
-    // Rutas protegidas (El sistema por dentro)
+    // --- 2. RUTAS PRIVADAS (El sistema por dentro) ---
     path: '/',
     element: <DashboardLayout />,
     children: [
       {
         index: true,
-        element: <Navigate to="/inventario" replace /> // Si entra a la raíz, redirige a inventario
+        element: <Navigate to="/inventario" replace />
       },
       {
         path: 'inventario',
-        element: <InventarioPage /> // ¡Tu tabla interactiva de vehículos!
+        element: <InventarioPage />
+      },
+      {
+        // Ojo aquí: sin la barra inclinada al principio
+        path: 'inventario/nuevoVehiculo',
+        element: (
+          <div className="p-4">
+            <VehiculosForm />
+          </div>
+        )
       },
       {
         path: 'clientes',
@@ -62,8 +53,8 @@ export const router = createBrowserRouter([
     ]
   },
   {
-    // Ruta de escape por si escriben cualquier cosa en la URL
+    // --- 3. RUTA DE ESCAPE (Si escriben mal la URL) ---
     path: '*',
-    element: <Navigate to="/login" replace />
+    element: <Navigate to="/" replace />
   }
-])
+]);

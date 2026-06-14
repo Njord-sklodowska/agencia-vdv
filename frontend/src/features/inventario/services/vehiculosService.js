@@ -14,4 +14,3 @@ export const crearVehiculo = async (data) => {
   return await axios.post(`${API_URL}/vehiculos/`, data, getAuthHeaders());
 };
 
-// Podemos agregar más aquí (getVehiculos, etc.)

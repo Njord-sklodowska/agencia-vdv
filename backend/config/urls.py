@@ -19,9 +19,10 @@ from django.urls import path, include
 from .views import home
 
 urlpatterns = [
-    path('', home),
     path('admin/', admin.site.urls),
+    # path('api/', include('cliente.urls')),  # <--- ESTA ES LA QUE DA ERROR
+    path('api/inventario/', include('inventario.urls')),
 
     # API CLIENTES
-    path('api/', include('cliente.urls')),
+    # path('api/', include('cliente.urls')),
 ]

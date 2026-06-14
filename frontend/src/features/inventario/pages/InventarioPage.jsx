@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // DATOS SIMULADOS ACTUALIZADOS (El ID 2 ahora está 'vendido')
 const vehiculosSimulados = [
@@ -119,12 +120,23 @@ function InventarioPage() {
           </div>
 
           {/* Botón de Acción Principal */}
-          <button 
+          <Link 
+            to="/inventario/nuevoVehiculo" 
             className="btn fw-bold border-0 text-uppercase px-4 py-2 shadow-sm" 
-            style={{ backgroundColor: '#f0ad4e', color: '#000', fontSize: '0.8rem', letterSpacing: '0.5px', borderRadius: '6px', height: '42px' }}
+            style={{ 
+              backgroundColor: '#f0ad4e', 
+              color: '#000', 
+              fontSize: '0.8rem', 
+              letterSpacing: '0.5px', 
+              borderRadius: '6px', 
+              height: '42px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              textDecoration: 'none'
+            }}
           >
             Agregar Vehículo
-          </button>
+          </Link>
         </div>
 
         {/* TABLA DE STOCK CON ESTÉTICA UNIFICADA A CLIENTES */}
