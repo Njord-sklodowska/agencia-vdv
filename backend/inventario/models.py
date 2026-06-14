@@ -56,7 +56,7 @@ class Vehiculo(models.Model):
     PROCEDENCIA_CHOICES = [('compra_directa', 'Compra Directa'), ('parte_de_pago', 'Parte de Pago')]
     
     # Relaciones
-    sucursal = models.ForeignKey('sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='vehiculos')
+    sucursal = models.ForeignKey('sucursal.Sucursal', on_delete=models.PROTECT, related_name='vehiculos')
     marca = models.ForeignKey(Marca, on_delete=models.PROTECT)
     modelo = models.ForeignKey(Modelo, on_delete=models.PROTECT)
 
@@ -356,10 +356,10 @@ class TrasladoVehiculo(models.Model):
         Vehiculo, on_delete=models.PROTECT, related_name='traslados'
     )
     sucursal_origen = models.ForeignKey(
-        'sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='traslados_salida'
+        'sucursal.Sucursal', on_delete=models.PROTECT, related_name='traslados_salida'
     )
     sucursal_destino = models.ForeignKey(
-        'sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='traslados_entrada'
+        'sucursal.Sucursal', on_delete=models.PROTECT, related_name='traslados_entrada'
     )
     usuario_autoriza = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='traslados_autorizados'

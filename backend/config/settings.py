@@ -31,10 +31,10 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'sucursales',
     'inventario',
     #'core', 
-    'ventas', 
+    'ventas',
+    'sucursal',
    
     'rest_framework',
     'corsheaders',

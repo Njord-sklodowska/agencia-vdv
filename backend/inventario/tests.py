@@ -3,12 +3,12 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from inventario.models import Vehiculo, Marca, Modelo
-from sucursales.models import SucursalTemp
+from sucursal.models import Sucursal
 
 class VehiculoModelTest(TestCase):
 
     def setUp(self):
-        self.sucursal = SucursalTemp.objects.create(nombre='Sucursal Test')
+        self.sucursal = self.Sucursal.objects.create(nombre='Sucursal Test')
         self.marca = Marca.objects.create(nombre='Toyota')
         self.modelo = Modelo.objects.create(
             marca=self.marca,

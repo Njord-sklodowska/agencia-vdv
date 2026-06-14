@@ -17,7 +17,7 @@ class OperacionVenta(models.Model):
     ]
 
     # Relaciones
-    sucursal = models.ForeignKey('sucursales.SucursalTemp', on_delete=models.PROTECT, related_name='operaciones')
+    sucursal = models.ForeignKey('sucursal.Sucursal', on_delete=models.PROTECT, related_name='operaciones')
     # TODO: Cambiar a 'clientes.Cliente' cuando el módulo de sergiio esté listo
     cliente = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='operaciones_titular', null=True, blank=True)
     cliente_cotitular = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='operaciones_cotitular', null=True, blank=True)
