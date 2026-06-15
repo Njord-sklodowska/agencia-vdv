@@ -43,7 +43,28 @@ class VehiculoViewSet(viewsets.ModelViewSet):
         # serializer.save(sucursal=self.request.user.sucursal)
         serializer.save()
 
+    # Acción para obtener estadísticas del dashboard
+    @action(detail=False, methods=['get'], url_path='stats')
+    def stats(self, request):
+        queryset = self.get_queryset()
+        total_vehiculos = queryset.count()
+        nuevos = queryset.filter(condicion_vehiculo='0km').count()
+        usados = queryset.filter(condicion_vehiculo='usado').count()
+        pendientes_entrega = queryset.filter(estado='vendido', entregado=False).count()
+        
+        # Suma total de precios de venta
+        valor_total = sum(float(v.precio) for v in queryset if v.precio)
+        
+        return Response({
+            'total_vehiculos': total_vehiculos,
+            'nuevos': nuevos,
+            'usados': usados,
+            'pendientes_entrega': pendientes_entrega,
+            'valor_total': valor_total,
+        })
+
     # Acción para soft delete
+
     @action(detail=True, methods=['post'])
     def desactivar(self, request, pk=None):
         vehiculo = self.get_object()

@@ -1,0 +1,176 @@
+:root {
+  --primary-dark: #212529;
+  --primary-dark-hover: #2d3748;
+  --accent-green: #2E8755;
+  --accent-green-hover: #256d46;
+  --bg-light: #f7fafc;
+  --bg-work-area: #edf2f7;
+  --surface-white: #ffffff;
+  --text-dark: #2d3748;
+  --text-muted: #718096;
+  --text-light: #cbd5e0;
+  --border-color: #e2e8f0;
+  
+  /* Colores de Identidad Visual - Modern ERP */
+  --card-header-bg: #2c3e50;
+  --table-head-bg: #cbd5e0;
+  --table-head-cell-bg: #a0aec0;
+  --table-zebra-bg: #f8f9fa; /* Zebra más claro que la propuesta */
+  --table-highlight-bg: #f6d9a2;
+  --status-success: #5cb85c;
+  --status-warning: #f0ad4e;
+  --status-danger: #d9534f;
+  
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 70px;
+  --navbar-height: 56px;
+}
+
+body { 
+  background-color: var(--bg-light); 
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+  margin: 0;
+}
+
+/* ── NAVBAR ── */
+.navbar-custom {
+  background-color: var(--primary-dark);
+  height: var(--navbar-height);
+  border-bottom: 2px solid var(--accent-green);
+  z-index: 1030;
+}
+.navbar-custom .navbar-brand { 
+  color: var(--accent-green) !important; 
+  font-weight: 600; 
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}
+.navbar-custom .nav-icon { 
+  color: var(--text-light); 
+  font-size: 18px; 
+}
+.navbar-custom .btn-logout {
+  border: 1px solid var(--accent-green);
+  color: var(--accent-green);
+  background: transparent;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.navbar-custom .btn-logout:hover { 
+  background: var(--accent-green); 
+  color: var(--primary-dark); 
+}
+.navbar-custom .user-pill {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.1);
+}
+.navbar-custom .user-pill p { color: #fff; margin: 0; }
+.navbar-custom .user-pill .sub { color: #a89298; font-size: 11px; }
+
+/* ── SIDEBAR ── */
+.sidebar-container {
+  width: var(--sidebar-width);
+  min-height: calc(100vh - var(--navbar-height));
+  background: var(--primary-dark);
+  border-right: 1px solid rgba(0,0,0,0.2);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.sidebar-container.collapsed { 
+  width: var(--sidebar-collapsed-width); 
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #6e5a60;
+  padding: 15px 20px 5px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.sidebar-container.collapsed .section-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-link-custom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-light);
+  border-radius: 8px;
+  margin: 2px 10px;
+  padding: 10px 12px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-link-custom:hover { 
+  background: rgba(255, 255, 255, 0.1); 
+  color: var(--accent-green); 
+}
+.nav-link-custom.active { 
+  background: rgba(0, 0, 0, 0.2); 
+  color: var(--accent-green); 
+  font-weight: 500; 
+  box-shadow: inset 3px 0 0 var(--accent-green);
+}
+.nav-link-custom .bi { 
+  font-size: 18px; 
+  min-width: 24px; 
+  text-align: center;
+}
+.nav-link-text {
+  transition: opacity 0.2s;
+}
+.sidebar-container.collapsed .nav-link-text {
+  opacity: 0;
+  display: none;
+}
+
+.badge-custom {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--accent-green);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-left: auto;
+}
+
+/* ── AVATAR ── */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  background: var(--accent-green); color: var(--primary-dark);
+  flex-shrink: 0;
+}
+
+/* ── MAIN CONTENT ── */
+.main-content {
+  flex-grow: 1;
+  padding: 24px;
+  min-height: calc(100vh - var(--navbar-height));
+  background-color: var(--bg-work-area);
+  transition: all 0.3s;
+}
+
+.accent-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-gold), #f4978e, #af42ae);
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+}

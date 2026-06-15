@@ -1,0 +1,154 @@
+:root {
+  --primary-color: #212529;
+  /* --accent-color: #c8ad55; */
+  --accent-color: #2E8755;
+  --contrast-color: #f0ad4e;
+  --bg-light: #f7fafc;
+  --dark-text: #2d3748;
+  --border-color: #e2e8f0;
+}
+
+body { 
+  background-color: var(--bg-light); 
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+  color: var(--dark-text);
+  margin: 0;
+}
+
+/* ── NAVBAR ── */
+.navbar-custom {
+  background-color: var(--primary-color);
+  height: 56px;
+  border-bottom: 2px solid var(--accent-color);
+}
+.navbar-custom .navbar-brand { color: #fff !important; font-weight: 600; }
+.navbar-custom .nav-icon { color: #cbd5e0; font-size: 18px; }
+.navbar-custom .btn-logout {
+  border: 1px solid #fff;
+  color: #fff;
+  background: transparent;
+  font-size: 13px;
+  transition: all .2s;
+}
+.navbar-custom .btn-logout:hover { background: #fff; color: var(--primary-color); }
+.navbar-custom .user-pill {
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.navbar-custom .user-pill p { color: #fff; margin: 0; }
+.navbar-custom .user-pill .sub { color: #a0aec0; font-size: 11px; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 220px;
+  min-height: calc(100vh - 56px);
+  background: var(--primary-color);
+  border-right: 1px solid rgba(0,0,0,0.1);
+  transition: width .2s;
+  overflow: hidden;
+}
+.sidebar.collapsed { width: 0; }
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #a0aec0;
+  padding: 10px 20px 4px;
+}
+.nav-link-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e0;
+  border-radius: 8px;
+  margin: 2px 8px;
+  padding: 8px 12px;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background .15s, color .15s;
+}
+.nav-link-custom:hover { background: rgba(255,255,255,0.1); color: var(--contrast-color); }
+.nav-link-custom.active { background: var(--accent-color); color: #fff; font-weight: 500; }
+.nav-link-custom .bi { font-size: 17px; }
+
+/* ── AVATAR ── */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  background: var(--accent-color); color: #fff;
+  flex-shrink: 0;
+}
+
+/* ── CARDS & TABLES ── */
+.card-custom {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-custom .card-header-custom {
+  background-color: var(--card-header-bg);
+  color: white;
+  padding: 1rem;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.table thead tr {
+  background-color: var(--table-head-bg);
+}
+
+.table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--table-head-cell-bg);
+  vertical-align: middle;
+  text-align: center;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: var(--table-zebra-bg); /* Zebra clara aplicada */
+}
+
+.table-row-highlight {
+  background-color: var(--table-highlight-bg) !important;
+}
+
+.table td { font-size: 13px; color: var(--dark-text); vertical-align: middle; }
+
+/* ── STATUS BADGES ── */
+.badge-status-success { background-color: var(--status-success); color: white; border-radius: 12px; }
+.badge-status-warning { background-color: var(--status-warning); color: white; border-radius: 12px; }
+.badge-status-danger { background-color: var(--status-danger); color: white; border-radius: 12px; }
+
+/* ── LOGIN ── */
+.login-card { border: 1px solid var(--border-color); border-radius: 14px; }
+.login-brand { color: var(--primary-color); }
+.form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(123, 97, 255, .2); }
+.btn-primary-custom {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  font-size: 13px;
+  transition: background .2s;
+}
+.btn-primary-custom:hover { background: var(--accent-color); color: #fff; }
+
+/* ── ACCENT LINE ── */
+.accent-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--contrast-color));
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+}

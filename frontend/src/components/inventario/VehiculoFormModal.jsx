@@ -1,0 +1,213 @@
+import React, { useState, useEffect } from 'react';
+import { inventarioApi } from '../../api/inventarioApi';
+
+const VehiculoFormModal = ({ isOpen, onClose, onSave, vehicleToEdit }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  
+  const initialFormState = {
+    marca: '',
+    modelo: '',
+    año: '',
+    precio: '',
+    patente: '',
+    estado: 'Nuevo',
+    descripcion: '',
+    kilometraje: '',
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  useEffect(() => {
+    if (vehicleToEdit) {
+      setFormData({
+        marca: vehicleToEdit.marca_nombre || vehicleToEdit.marca || '',
+        modelo: vehicleToEdit.modelo_nombre || vehicleToEdit.modelo || '',
+        año: vehicleToEdit.anio || vehicleToEdit.año || '',
+        precio: vehicleToEdit.precio || '',
+        patente: vehicleToEdit.patente || '',
+        estado: vehicleToEdit.estado || 'Nuevo',
+        descripcion: vehicleToEdit.descripcion || '',
+        kilometraje: vehicleToEdit.kilometraje || '',
+      });
+    } else {
+      setFormData(initialFormState);
+    }
+  }, [vehicleToEdit, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (vehicleToEdit) {
+        await inventarioApi.updateVehiculo(vehicleToEdit.id, formData);
+      } else {
+        await inventarioApi.createVehiculo(formData);
+      }
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setFormData(initialFormState);
+        onClose();
+        onSave(); // Refresh the table
+      }, 1500);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Hubo un error al guardar el vehículo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+      <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div className="modal-content border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="modal-header bg-white py-3 border-bottom" style={{ borderBottom: '1px solid #e8dfe1' }}>
+            <h5 className="modal-title fw-bold" style={{ color: 'var(--text-dark)' }}>
+              <i className="bi bi-car-front-fill me-2 text-primary"></i> {vehicleToEdit ? 'Editar Vehículo' : 'Nuevo Vehículo'}
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          
+          <div className="modal-body p-4">
+            {success && (
+              <div className="alert alert-success d-flex align-items-center mb-4" role="alert">
+                <i className="bi bi-check-circle-fill me-2"></i>
+                <div>¡Vehículo guardado exitosamente!</div>
+              </div>
+            )}
+
+            {error && (
+              <div className="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>{error}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium text-muted">Marca</label>
+                  <input 
+                    type="text" name="marca" className="form-control" placeholder="Ej: Toyota" 
+                    value={formData.marca} onChange={handleChange} required 
+                    style={{ border: '1px solid #e8dfe1' }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium text-muted">Modelo</label>
+                  <input 
+                    type="text" name="modelo" className="form-control" placeholder="Ej: Hilux" 
+                    value={formData.modelo} onChange={handleChange} required 
+                    style={{ border: '1px solid #e8dfe1' }}
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-medium text-muted">Año</label>
+                  <input 
+                    type="number" name="año" className="form-control" placeholder="2024" 
+                    value={formData.año} onChange={handleChange} required 
+                    style={{ border: '1px solid #e8dfe1' }}
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-medium text-muted">Precio</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-end-0" style={{ border: '1px solid #e8dfe1' }}>$</span>
+                    <input 
+                      type="text" name="precio" className="form-control border-start-0" 
+                      placeholder="0.00" value={formData.precio} onChange={handleChange} required 
+                      style={{ border: '1px solid #e8dfe1' }}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-medium text-muted">Estado</label>
+                  <select name="estado" className="form-select" value={formData.estado} onChange={handleChange} style={{ border: '1px solid #e8dfe1' }}>
+                    <option value="Nuevo">Nuevo</option>
+                    <option value="Usado">Usado</option>
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium text-muted">Patente / VIN</label>
+                  <input 
+                    type="text" name="patente" className="form-control" placeholder="Ingrese la patente" 
+                    value={formData.patente} onChange={handleChange} required 
+                    style={{ border: '1px solid #e8dfe1' }}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium text-muted">Kilometraje</label>
+                  <input 
+                    type="number" name="kilometraje" className="form-control" placeholder="0 km" 
+                    value={formData.kilometraje} onChange={handleChange} 
+                    disabled={formData.estado === 'Nuevo'}
+                    style={{ border: '1px solid #e8dfe1', backgroundColor: formData.estado === 'Nuevo' ? '#f8f9fa' : '#fff' }}
+                  />
+                </div>
+                <div className="col-12">
+                  <label className="form-label small fw-medium text-muted">Notas / Descripción</label>
+                  <textarea 
+                    name="descripcion" className="form-control" rows="3" 
+                    placeholder="Detalles adicionales..." value={formData.descripcion} 
+                    onChange={handleChange} style={{ border: '1px solid #e8dfe1' }}
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="mt-4 d-flex gap-3 justify-content-end">
+                <button type="button" className="btn btn-outline-custom px-4" onClick={onClose}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-gold px-5 py-2" disabled={loading}>
+                  {loading ? (
+                    <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
+                  ) : (
+                    <><i className="bi bi-save me-1"></i> {vehicleToEdit ? 'Actualizar Vehículo' : 'Guardar Vehículo'}</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <style>{`
+        .btn-gold {
+          background: var(--accent-gold);
+          color: var(--primary-dark);
+          border: none;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .btn-gold:hover { background: #b89c45; color: var(--primary-dark); }
+        .btn-outline-custom {
+          border: 1px solid #d4c0c4;
+          color: #5a4a4e;
+          background: transparent;
+          transition: all 0.2s;
+        }
+        .btn-outline-custom:hover {
+          background: #f5f0f1;
+          border-color: var(--accent-gold);
+          color: var(--accent-gold);
+        }
+        .form-control:focus, .form-select:focus {
+          border-color: var(--accent-gold) !important;
+          box-shadow: 0 0 0 0.25rem rgba(200, 173, 85, 0.25) !important;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default VehiculoFormModal;
