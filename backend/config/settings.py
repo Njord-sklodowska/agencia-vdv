@@ -15,13 +15,14 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_
 INSTALLED_APPS = [
     'sucursal',
     'usuario',
-    # 'cliente',
+    'clientes',
     'inventario',
     # 'auditoria',
 
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
+    'parametro_sistema',
 
     'django.contrib.admin',
     'django.contrib.auth',
