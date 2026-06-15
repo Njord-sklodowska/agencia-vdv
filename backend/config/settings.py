@@ -68,9 +68,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agencia_vdv',
         'USER': 'root',
-        'PASSWORD': 'agencia123654',
+        'PASSWORD': 'nueva_contraseña',        # contraseña local
         'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'PORT': '3307',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }

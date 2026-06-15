@@ -1,5 +1,4 @@
 
-
 from rest_framework import serializers
 from .models import OperacionVenta, FormaPago, Anticipo
 import datetime

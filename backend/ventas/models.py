@@ -49,33 +49,35 @@ class OperacionVenta(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
+        original = OperacionVenta.objects.filter(pk=self.pk).first() if self.pk else None
+
         if self.cliente_cotitular and self.cliente_cotitular == self.cliente:
-            raise ValidationError({'cliente_cotitular': "El cotitular no puede ser el mismo que el titular."})
-        
+            raise ValidationError({'cliente_cotitular': 'El cotitular no puede ser el mismo que el titular.'})
+
         if self.estado == 'cancelada' and not self.observaciones:
-            raise ValidationError({'observaciones': "Debe indicar el motivo de la cancelación."})
-        
-        if self.pk:
-            original = OperacionVenta.objects.filter(pk=self.pk).first()
-            if original and original.estado != 'borrador':
-                if self.precio_original != original.precio_original:
-                    raise ValidationError({'precio_original': 'No se puede modificar el precio una vez confirmada la operación.'})
+            raise ValidationError({'observaciones': 'Debe indicar el motivo de la cancelación.'})
+
+        if original and original.estado != 'borrador':
+            if self.precio_original != original.precio_original:
+                raise ValidationError({'precio_original': 'No se puede modificar el precio una vez confirmada la operación.'})
+
+        if original and original.estado == 'borrador' and self.estado == 'confirmada':
+            raise ValidationError({'estado': 'No se puede confirmar una operación directamente. Use la acción confirmar.'})
+
+        if original and original.estado == 'confirmada' and self.estado == 'borrador':
+            raise ValidationError({'estado': 'No se puede revertir una operación confirmada a borrador.'})
 
         if self.anticipo and self.vehiculo_vendido and self.anticipo.vehiculo != self.vehiculo_vendido:
             raise ValidationError({'anticipo': 'El anticipo no corresponde al vehículo seleccionado.'})
-        
+
         if not self.pk and self.vehiculo_vendido_id:
             operaciones_activas = OperacionVenta.objects.filter(
-            vehiculo_vendido=self.vehiculo_vendido,
-            estado__in=['borrador', 'confirmada']
+                vehiculo_vendido=self.vehiculo_vendido,
+                estado__in=['borrador', 'confirmada']
             )
             if operaciones_activas.exists():
                 raise ValidationError({'vehiculo_vendido': 'Ya existe una operación activa para este vehículo.'})
-        if self.pk:
-            original = OperacionVenta.objects.filter(pk=self.pk).first()
-            if original and original.estado == 'borrador' and self.estado == 'confirmada':
-                raise ValidationError({'estado': 'No se puede confirmar una operación directamente. Use la acción confirmar.'})
-            
+
         hoy = datetime.date.today()
         if self.fecha_operacion:
             fecha_op = self.fecha_operacion.date() if hasattr(self.fecha_operacion, 'date') else self.fecha_operacion
@@ -83,24 +85,20 @@ class OperacionVenta(models.Model):
                 raise ValidationError({'fecha_operacion': 'La fecha de operación no puede ser futura.'})
             if (hoy - fecha_op).days > 30:
                 raise ValidationError({'fecha_operacion': 'La fecha de operación no puede ser anterior a 30 días.'})
-        if self.pk:
-            original = OperacionVenta.objects.filter(pk=self.pk).first()
-            if original and original.estado == 'confirmada' and self.estado == 'borrador':
-                raise ValidationError({'estado': 'No se puede revertir una operación confirmada a borrador.'})
-        
+
         if self.vehiculo_vendido_id:
             from inventario.models import Vehiculo
             vehiculo = Vehiculo.all_objects.get(pk=self.vehiculo_vendido_id)
             if vehiculo.estado == 'vendido':
                 raise ValidationError({'vehiculo_vendido': 'No se puede crear una operación para un vehículo ya vendido.'})
+
         if self.valor_vehiculo_usado and self.precio_original:
             saldo = self.precio_original - (self.descuento_aplicado or 0)
             if self.valor_vehiculo_usado > saldo:
                 raise ValidationError({
                     'vehiculo_usado_entregado': 'El valor del vehículo usado no puede superar el precio a pagar.'
                 })
-                        
-    
+        
     def save(self, *args, **kwargs):
         skip_validation = kwargs.pop('skip_validation', False)
         

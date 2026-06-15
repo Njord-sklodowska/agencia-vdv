@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('inventario', '0007_alter_vehiculo_vin'),
-        ('sucursales', '0001_initial'),
+        ('sucursal', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
