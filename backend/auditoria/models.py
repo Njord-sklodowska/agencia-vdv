@@ -1,5 +1,5 @@
 from django.db import models
-from usuario.models import Usuario
+from django.conf import settings
 
 
 class LogAuditoria(models.Model):
@@ -12,8 +12,7 @@ class LogAuditoria(models.Model):
         ('LOGOUT', 'Logout'),
     ]
 
-    usuario = models.ForeignKey(
-        Usuario,
+    usuario = models.ForeignKey('sucursal.Sucursal',
         on_delete=models.PROTECT,
         related_name='logs_auditoria'
     )

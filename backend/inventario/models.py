@@ -119,8 +119,9 @@ class Vehiculo(models.Model):
             
             if not self.procedencia:
                 raise ValidationError({"procedencia": "La procedencia es obligatoria para usados."})
-            if not self.numero_serie_motor:
-                raise ValidationError({"numero_serie_motor": "El número de serie del motor es obligatorio."})
+            
+        if not self.numero_serie_motor:
+            raise ValidationError({"numero_serie_motor": "El número de serie del motor es obligatorio."})
         
         #  Validación para 0KM
         if self.condicion_vehiculo == '0km':
@@ -309,10 +310,13 @@ class VehiculoUsado(models.Model):
             raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser anterior a 30 días.'})
 
         if self.fecha_evaluacion:
+
             if self.fecha_evaluacion > hoy:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser futura.'})
-            if (hoy - self.fecha_evaluacion).days > 30:
-                raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser anterior a 30 días.'})
+            
+            if self.fecha_ingreso and self.fecha_ingreso > hoy:
+                raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser futura.'})
+            
             if self.fecha_ingreso and self.fecha_evaluacion > self.fecha_ingreso:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'})
 
@@ -362,13 +366,13 @@ class TrasladoVehiculo(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-def clean(self):
-    if not self.pk and self.vehiculo_id:
-        if self.vehiculo.estado == 'vendido':
-            raise ValidationError({'vehiculo': 'No se puede trasladar un vehículo vendido.'})
-        if self.sucursal_origen_id and self.vehiculo.sucursal_id != self.sucursal_origen_id:
-            raise ValidationError({'sucursal_origen': 'La sucursal origen no coincide con la sucursal actual del vehículo.'})
-        
+    def clean(self):
+        if not self.pk and self.vehiculo_id:
+            if self.vehiculo.estado == 'vendido':
+                raise ValidationError({'vehiculo': 'No se puede trasladar un vehículo vendido.'})
+            if self.sucursal_origen_id and self.vehiculo.sucursal_id != self.sucursal_origen_id:
+                raise ValidationError({'sucursal_origen': 'La sucursal origen no coincide con la sucursal actual del vehículo.'})
+            
     
     def save(self, *args, **kwargs):
         self.full_clean()

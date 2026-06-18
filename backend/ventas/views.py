@@ -34,8 +34,13 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
         if operacion.anticipo and operacion.anticipo.estado == 'pendiente':
             total_pagado += operacion.anticipo.monto
 
-        if operacion.valor_vehiculo_usado:
-            total_pagado += operacion.valor_vehiculo_usado
+        total_pagado = sum(fp.monto for fp in operacion.formas_pago.all())
+
+        if operacion.anticipo and operacion.anticipo.estado == 'pendiente':
+            total_pagado += operacion.anticipo.monto
+
+        if total_pagado != operacion.precio_final:
+            ...
 
         if not operacion.formas_pago.exists() and not operacion.vehiculo_usado_entregado:
             return Response(
@@ -48,7 +53,25 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                 {'detail': f'La suma de formas de pago ({total_pagado}) no coincide con el precio final ({operacion.precio_final}).'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+        # Validar que el vehículo usado tenga evaluación registrada
+        if operacion.vehiculo_usado_entregado:
+            from inventario.models import VehiculoUsado
+            tiene_evaluacion = VehiculoUsado.objects.filter(
+                vehiculo=operacion.vehiculo_usado_entregado
+            ).exists()
+            if not tiene_evaluacion:
+                return Response(
+                    {'detail': 'El vehículo usado entregado como parte de pago debe tener una evaluación registrada antes de confirmar la operación.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        # Validar que toda forma de pago cheque/pagaré tenga su título de crédito
+        formas_pago_titulo = operacion.formas_pago.filter(tipo_pago__in=['cheque', 'pagare'])
+        for fp in formas_pago_titulo:
+            if not hasattr(fp, 'titulo_credito'):
+                return Response(
+                    {'detail': f'La forma de pago "{fp.tipo_pago}" por ${fp.monto} no tiene un título de crédito registrado. Debe crear el título antes de confirmar.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         with transaction.atomic():
             vehiculo = Vehiculo.objects.select_for_update().get(pk=operacion.vehiculo_vendido.pk)
@@ -153,3 +176,53 @@ class AnticipoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # TODO: filtrar por sucursal del usuario cuando Sergio termine roles
         return Anticipo.objects.all()
+    
+from .models import TituloCredito, RegistroCobro
+from .serializers import TituloCreditoSerializer, RegistroCobroSerializer
+
+
+class TituloCreditoViewSet(viewsets.ModelViewSet):
+    serializer_class = TituloCreditoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = TituloCredito.objects.all()
+        tipo = self.request.query_params.get('tipo')
+        estado = self.request.query_params.get('estado')
+        if tipo:
+            queryset = queryset.filter(tipo=tipo)
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def registrar_cobro(self, request, pk=None):
+        titulo = self.get_object()
+
+        if titulo.estado == 'cobrado':
+            return Response(
+                {'detail': 'Este título ya fue cobrado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = RegistroCobroSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(titulo=titulo, usuario_registro=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RegistroCobroViewSet(viewsets.ModelViewSet):
+    serializer_class = RegistroCobroSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def get_queryset(self):
+        queryset = RegistroCobro.objects.all()
+        titulo_id = self.request.query_params.get('titulo')
+        if titulo_id:
+            queryset = queryset.filter(titulo_id=titulo_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(usuario_registro=request.user)
