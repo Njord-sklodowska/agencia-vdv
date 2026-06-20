@@ -1,0 +1,12 @@
+.btn-gris-estandar {
+  background-color: #8d9caf !important;
+  border-color: #8d9caf !important;
+  color: #000000 !important;
+}
+
+/* Opcional: Para que no cambie de color al pasar el mouse */
+.btn-gris-estandar:hover {
+  background-color: #7a8899 !important;
+  border-color: #7a8899 !important;
+}
+}

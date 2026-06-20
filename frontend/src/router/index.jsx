@@ -3,6 +3,8 @@ import AuthLayout from '../layouts/AuthLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
 import InventarioPage from '../features/inventario/pages/InventarioPage';
 import VehiculosForm from '../features/inventario/components/VehiculosForm';
+import ClientesPage from '../features/clientes/pages/ClientesPage';
+import ClientesForm from '../features/clientes/components/ClientesForm'; 
 
 export const router = createBrowserRouter([
   {
@@ -33,11 +35,18 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path: 'clientes',
+        path: 'clientes', // Dejamos solo esta versión con el contenedor p-4
         element: (
-          <div className="alert alert-secondary border-0 p-4 shadow-sm">
-            <h3 className="fw-bold">Módulo de Clientes</h3>
-            <p className="mb-0 text-muted">Próximo paso en tu plan: Aquí diseñaremos el ABM de clientes, Sol.</p>
+          <div className="p-4">
+            <ClientesPage />
+          </div>
+        )
+      },
+      {
+        path: 'clientes/nuevo', 
+        element: (
+          <div className="p-4">
+            <ClientesForm />
           </div>
         )
       },

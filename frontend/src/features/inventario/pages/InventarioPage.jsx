@@ -215,32 +215,55 @@ function InventarioPage() {
           </table>
         </div>
 
-        {/* PIE DE PAGINACIÓN CLONADO RECTO DE CLIENTES */}
+        {/* --- ESTE ES EL CONTENEDOR COMPLETO --- */}
         <div className="d-flex justify-content-between align-items-center p-3 bg-light border-top border-secondary border-opacity-25">
-          <div className="text-muted small fw-semibold">
+  
+          {/* Texto a la izquierda */}
+          <div className="text-muted fw-bold">
             Mostrando página {paginaActual} de {totalPaginas || 1}
           </div>
+
+          {/* Botones a la derecha con el estilo de Guardar Vehículo */}
           <div className="d-flex gap-2">
-            <button 
-              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+            <button
+              className="btn btn-primary"
+              style={{
+                backgroundColor: '#8d9caf',
+                color: '#000000',
+                fontSize: '16px',
+                fontWeight: '800',
+                border: 'none',
+                padding: '10px 24px' // Mismo padding que Guardar Vehículo
+              }}
               disabled={paginaActual === 1}
               onClick={() => setPaginaActual(prev => prev - 1)}
             >
-              <ChevronLeft size={16} className="me-1" /> Anterior
+              <ChevronLeft size={20} className="me-1" /> Anterior
             </button>
-            <button 
-              className="btn btn-sm btn-outline-secondary d-flex align-items-center px-3"
+
+            <button
+              className="btn btn-primary"
+              style={{
+                backgroundColor: '#8d9caf',
+                color: '#000000',
+                fontSize: '16px',
+                fontWeight: '800',
+                border: 'none',
+                padding: '10px 24px' // Mismo padding que Guardar Vehículo
+              }}
               disabled={paginaActual === totalPaginas || totalPaginas === 0}
               onClick={() => setPaginaActual(prev => prev + 1)}
             >
-              Siguiente <ChevronRight size={16} className="ms-1" />
+              Siguiente <ChevronRight size={20} className="ms-1" />
             </button>
           </div>
         </div>
 
       </div>
-    </div>
-  );
-}
 
+    </div>
+
+  );
+
+}
 export default InventarioPage;

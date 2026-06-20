@@ -62,13 +62,13 @@ const VehiculosForm = ({ vehiculoInicial = null }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border rounded shadow-sm bg-light">
+    <form onSubmit={handleSubmit} className="p-4 border rounded shadow-sm" style={{ backgroundColor: '#b1c3db' }}>
       <h3 className="mb-4">Registro de Vehículo</h3>
 
-      <div className="row g-3">
+      <div className="row g-3"align-items-end>
         {/* --- SECCIÓN 1: UBICACIÓN Y CONDICIÓN --- */}
         <div className="col-md-6">
-          <label>ID Sucursal</label>
+          <label className="form-label">ID Sucursal</label>
           <input type="number" name="id_sucursal" className="form-control" value={formData.id_sucursal} onChange={handleChange} required />
         </div>
 
@@ -81,27 +81,35 @@ const VehiculosForm = ({ vehiculoInicial = null }) => {
         </div>
 
         {/* --- SECCIÓN 2: IDENTIFICACIÓN PRINCIPAL --- */}
-        <div className="col-md-6">
-          {formData.condicion_vehiculo === '0km' ? (
-            <>
-              <label className="form-label">VIN (17 caracteres)</label>
-              <input name="vin" className="form-control" value={formData.vin} onChange={handleChange} required />
-            </>
-          ) : (
-            <>
-              <label className="form-label">Patente</label>
-              <input name="patente" className="form-control" value={formData.patente} onChange={handleChange} required />
-            </>
-          )}
-        </div>
+        <div className="row g-3">
+          {/* Bloque Izquierdo */}
+          <div className="col-md-6">
+            {formData.condicion_vehiculo === '0km' ? (
+              <>
+                <label className="form-label">VIN (17 caracteres)</label>
+                <input name="vin" className="form-control" value={formData.vin} onChange={handleChange} required />
+              </>
+            ) : (
+              <>
+                <label className="form-label">Patente</label>
+                <input name="patente" className="form-control" value={formData.patente} onChange={handleChange} required />
+              </>
+            )}
+          </div>
 
-        <div className="col-md-3">
-          <label>ID Marca</label>
-          <input type="number" name="id_marca" className="form-control" value={formData.id_marca} onChange={handleChange} required />
-        </div>
-        <div className="col-md-3">
-          <label>ID Modelo</label>
-          <input type="number" name="id_modelo" className="form-control" value={formData.id_modelo} onChange={handleChange} required />
+          {/* Bloque Derecho (Marca y Modelo juntos) */}
+          <div className="col-md-6">
+            <div className="row">
+              <div className="col-md-6">
+                <label className="form-label">ID Marca</label>
+                <input type="number" name="id_marca" className="form-control" value={formData.id_marca} onChange={handleChange} required />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">ID Modelo</label>
+                <input type="number" name="id_modelo" className="form-control" value={formData.id_modelo} onChange={handleChange} required />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* --- SECCIÓN 3: DATOS COMERCIALES --- */}
@@ -181,7 +189,6 @@ const VehiculosForm = ({ vehiculoInicial = null }) => {
         )}
 
         {/* --- SECCIÓN 6: DESCRIPCIÓN --- */}
-        {/* --- SECCIÓN 6: DESCRIPCIÓN --- */}
         <div className="col-12">
           <label className="form-label">Descripción Técnica (Opcional)</label>
           <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -198,10 +205,21 @@ const VehiculosForm = ({ vehiculoInicial = null }) => {
       </div> {/* <--- AQUÍ ESTÁ EL CIERRE QUE FALTABA PARA EL DIV "row g-3" */}
 
       <div className="mt-4 d-flex justify-content-end">
-        <button type="submit" className="btn btn-primary px-4">
+        <button 
+          type="submit" 
+          className="btn btn-primary"
+          style={{ 
+            backgroundColor: '#8d9caf', 
+            color: '#000000',          // El gris intenso que definimos
+            fontSize: '16px',          // Tamaño grande
+            fontWeight: '800',         // Negrita fuerte
+            border: 'none',
+            padding: '10px 24px'       // Un poco más de espacio para que se vea robusto
+          }}
+        >
           Guardar Vehículo
         </button>
-      </div>
+     </div>
     </form>
   );
 };
