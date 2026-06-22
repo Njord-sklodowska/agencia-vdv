@@ -112,12 +112,12 @@ class Cliente(models.Model):
 
         if self.tipo_persona == 'fisica':
 
-            if not self.nombre:
+            if not self.nombre or not self.nombre.strip():
                 raise ValidationError({
                     'nombre': 'El nombre es obligatorio.'
                 })
 
-            if not self.apellido:
+            if not self.apellido or not self.apellido.strip():
                 raise ValidationError({
                     'apellido': 'El apellido es obligatorio.'
                 })
@@ -129,7 +129,7 @@ class Cliente(models.Model):
 
         if self.tipo_persona == 'juridica':
 
-            if not self.razon_social:
+            if not self.razon_social or not self.razon_social.strip():
                 raise ValidationError({
                     'razon_social': 'La razón social es obligatoria.'
                 })
@@ -139,6 +139,22 @@ class Cliente(models.Model):
             if self.fecha_nacimiento >= timezone.now().date():
                 raise ValidationError({
                     'fecha_nacimiento': 'La fecha debe ser anterior a hoy.'
+                })
+
+            hoy = timezone.now().date()
+
+            edad = (
+                hoy.year
+                - self.fecha_nacimiento.year
+                - (
+                    (hoy.month, hoy.day)
+                    < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+                )
+            )
+
+            if edad < 18:
+                raise ValidationError({
+                    'fecha_nacimiento': 'El cliente debe ser mayor de 18 años.'
                 })
 
         if not self.domicilio_fiscal:
