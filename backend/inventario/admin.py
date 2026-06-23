@@ -52,7 +52,7 @@ class VehiculoAdmin(admin.ModelAdmin):
     )
     
     inlines = [FotografiaInline]
-    list_display = ('id', 'marca', 'modelo', 'patente', 'estado', 'entregado', 'precio', 'activo')
+    list_display = ('id', 'marca', 'modelo', 'patente', 'estado','vin', 'precio_costo', 'precio', 'entregado', 'activo')
     list_filter = ('estado', 'entregado', 'activo' , 'condicion_vehiculo', 'marca')
     search_fields = ('patente', 'vin')
 

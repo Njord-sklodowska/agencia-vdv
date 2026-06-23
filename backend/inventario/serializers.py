@@ -4,6 +4,7 @@ from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, Vehicu
 import datetime 
 from decimal import Decimal
 
+
 class MarcaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Marca
@@ -51,27 +52,46 @@ class VehiculoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['fecha_alta', 'fecha_cambio_estado', 'updated_at']
 
+    
     def validate(self, data):
+        from django.core.exceptions import ValidationError
+        errores = {}
+        
         precio = data.get('precio')
         precio_costo = data.get('precio_costo')
         
         if precio and precio_costo and precio < precio_costo:
-            self._precio_bajo_costo = True
+            errores['precio'] = 'El precio de venta no puede ser inferior al costo.'
         
+        if not data.get('numero_serie_motor', '').strip():
+            errores['numero_serie_motor'] = 'El número de serie del motor es obligatorio.'
+
+        condicion = data.get('condicion_vehiculo')
+        
+        if condicion == 'usado':
+            if not data.get('patente'):
+                errores['patente'] = 'La patente es obligatoria para vehículos usados.'
+            if (data.get('kilometraje') or 0) <= 0:
+                errores['kilometraje'] = 'El kilometraje debe ser mayor a 0 para usados.'
+            if not data.get('procedencia'):
+                errores['procedencia'] = 'La procedencia es obligatoria para usados.'
+
+        if condicion == '0km':
+            if data.get('patente') and data.get('estado') != 'vendido':
+                errores['patente'] = 'Un vehículo 0km no debe tener patente asignada.'
+            if (data.get('kilometraje') or 0) > 500:
+                errores['kilometraje'] = 'Un vehículo 0km no puede tener más de 500 km.'
+
+        if errores:
+            raise serializers.ValidationError(errores)
+
+        instance = Vehiculo(**data)
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+
         return data
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if getattr(self, '_precio_bajo_costo', False):
-            data['advertencia'] = 'El precio de venta es inferior al costo.'
-        return data
-
-class TallerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Taller
-        fields = ['id', 'nombre', 'direccion', 'telefono', 'email', 'estado', 'fecha_alta', 'updated_at']
-        read_only_fields = ['fecha_alta', 'updated_at']
-
 
 class VehiculoUsadoSerializer(serializers.ModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
@@ -91,24 +111,6 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
             'fecha_alta', 'updated_at',
         ]
         read_only_fields = ['fecha_alta', 'updated_at']
-
-    def validate_precio_tasacion_final(self, value):
-        taller = self.initial_data.get('taller')
-        precio_info_auto = self.initial_data.get('precio_info_auto')
-        porcentaje = self.initial_data.get('porcentaje_deduccion')
-
-        if taller and precio_info_auto and porcentaje:
-            try:
-                esperado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))
-                if abs(Decimal(str(value)) - esperado) > Decimal('0.01'):
-                    raise serializers.ValidationError(
-                        f'Con taller el precio debe ser {esperado:.2f} según Info Auto y porcentaje ingresado.'
-                    )
-            except serializers.ValidationError:
-                raise
-            except Exception as e:
-                raise serializers.ValidationError('Los valores numéricos ingresados no son válidos.')
-        return value
 
     def validate_porcentaje_deduccion(self, value):
         if value is not None and (value < 15 or value > 20):
@@ -133,6 +135,24 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('La fecha de evaluación no puede ser futura.')
         if (hoy - value).days > 30:
             raise serializers.ValidationError('La fecha de evaluación no puede ser anterior a 30 días.')
+        return value
+
+    def validate_precio_tasacion_final(self, value):
+        taller = self.initial_data.get('taller')
+        precio_info_auto = self.initial_data.get('precio_info_auto')
+        porcentaje = self.initial_data.get('porcentaje_deduccion')
+
+        if taller and precio_info_auto and porcentaje:
+            try:
+                esperado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))
+                if abs(Decimal(str(value)) - esperado) > Decimal('0.01'):
+                    raise serializers.ValidationError(
+                        f'Con taller el precio debe ser {esperado:.2f} según Info Auto y porcentaje ingresado.'
+                    )
+            except serializers.ValidationError:
+                raise
+            except Exception:
+                raise serializers.ValidationError('Los valores numéricos ingresados no son válidos.')
         return value
 
     def validate(self, data):
@@ -166,7 +186,12 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
 
         return data
     
-    
+class TallerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Taller
+        fields = ['id', 'nombre', 'direccion', 'telefono', 'email', 'estado', 'fecha_alta', 'updated_at']
+        read_only_fields = ['fecha_alta', 'updated_at']
+
 class TrasladoVehiculoSerializer(serializers.ModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
     sucursal_origen_nombre = serializers.CharField(source='sucursal_origen.nombre', read_only=True)
@@ -193,9 +218,8 @@ class TrasladoVehiculoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'sucursal_destino': 'La sucursal destino no puede ser igual a la de origen.'}
             )
-    
         return data
-    
+
     def validate_fecha_traslado(self, value):
         hoy = datetime.date.today()
         if value > hoy:
@@ -203,5 +227,3 @@ class TrasladoVehiculoSerializer(serializers.ModelSerializer):
         if (hoy - value).days > 30:
             raise serializers.ValidationError('La fecha de traslado no puede ser anterior a 30 días.')
         return value
-        
-    

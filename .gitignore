@@ -1,12 +1,17 @@
+
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
 venv/
 modelos_recuperados.py
 
 # Django
 db.sqlite3
+*.log
+media/
 
 # Node
 node_modules/
@@ -17,3 +22,18 @@ dist/
 
 # OS
 .DS_Store
+Thumbs.db
+
+# PyCharm
+.idea/
+
+# Migraciones generadas automáticamente (opcional, depende del equipo)
+# */migrations/*.py  ← no lo agregues, en Django se suelen versionar
+
+# tengo que eliminar core
+backend/core/
+
+backend/sucursales/
+
+inventario/fixtures/
+inventario/management
