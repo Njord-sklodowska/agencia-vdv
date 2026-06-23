@@ -126,6 +126,16 @@ class Cliente(models.Model):
                 raise ValidationError({
                     'cuil': 'El CUIL es obligatorio.'
                 })
+            
+            if not self.cuil.isdigit():
+                raise ValidationError({
+                    'cuil': 'El CUIL debe contener solo números.'
+                })
+
+            if len(self.cuil) != 11:
+                raise ValidationError({
+                    'cuil': 'El CUIL debe tener exactamente 11 dígitos.'
+                })
 
         if self.tipo_persona == 'juridica':
 
@@ -156,6 +166,15 @@ class Cliente(models.Model):
                 raise ValidationError({
                     'fecha_nacimiento': 'El cliente debe ser mayor de 18 años.'
                 })
+        if not self.telefono.isdigit():
+            raise ValidationError({
+                'telefono': 'El teléfono debe contener solo números.'
+            })
+
+        if len(self.telefono) not in [10, 11]:
+            raise ValidationError({
+                'telefono': 'El teléfono debe tener 10 u 11 dígitos.'
+            })
 
         if not self.domicilio_fiscal:
             self.domicilio_fiscal = self.domicilio_real
