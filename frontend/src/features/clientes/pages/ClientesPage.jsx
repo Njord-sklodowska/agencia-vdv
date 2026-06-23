@@ -1,45 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// DATOS SIMULADOS EXACTOS PARA CLIENTES
-const clientesSimulados = [
-  { 
-    id_cliente: 1, 
-    nombre: 'Juan', 
-    apellido: 'Perez', 
-    dni_cuit: '2034567891', 
-    telefono: '3814567890', 
-    email: 'juan.perez@email.com', 
-    estado: 'activo' 
-  },
-  { 
-    id_cliente: 2, 
-    nombre: 'Maria', 
-    apellido: 'Gomez', 
-    dni_cuit: '2733445566', 
-    telefono: '3854123456', 
-    email: 'maria.g@email.com', 
-    estado: 'inactivo' 
-  },
-  { 
-    id_cliente: 3, 
-    nombre: 'Carlos', 
-    apellido: 'Ruiz', 
-    dni_cuit: '2011223344', 
-    telefono: '3819876543', 
-    email: 'cruiz@empresa.com', 
-    estado: 'activo' 
-  }
-];
-
 function ClientesPage() {
   const [busqueda, setBusqueda] = useState('');
-  const [listaClientes, setListaClientes] = useState(clientesSimulados);
+  const [listaClientes, setListaClientes] = useState([]);
 
   // CONFIGURACIÓN DE PAGINACIÓN (30 líneas fijas por página)
   const [paginaActual, setPaginaActual] = useState(1);
   const clientesPorPagina = 30; 
+
+  // 🔌 CONEXIÓN REAL CON EL BACKEND DE SERGIO
+  useEffect(() => {
+    const cargarClientes = async () => {
+      try {
+        const response = await fetch('/api/clientes/');
+        if (response.ok) {
+          const data = await response.json();
+          setListaClientes(data);
+        } else {
+          console.error("Error al traer los clientes del servidor");
+        }
+      } catch (error) {
+        console.error("Error de red:", error);
+      }
+    };
+
+    cargarClientes();
+  }, []);
 
   const indiceUltimoCliente = paginaActual * clientesPorPagina;
   const indicePrimerCliente = indiceUltimoCliente - clientesPorPagina;
@@ -150,9 +138,11 @@ function ClientesPage() {
                 // 🔍 LÓGICA DE BÚSQUEDA MULTI-CRITERIO
                 const texto = normalizarTexto(busqueda);
                 const nombreCompleto = cliente.nombre ? normalizarTexto(`${cliente.nombre} ${cliente.apellido}`) : '';
+                const razonSocial = cliente.razon_social ? normalizarTexto(cliente.razon_social) : '';
 
                 const coincide = texto !== '' && cliente.id_cliente && (
                   nombreCompleto.includes(texto) ||
+                  razonSocial.includes(texto) ||
                   normalizarTexto(cliente.dni_cuit).startsWith(texto) ||
                   normalizarTexto(cliente.email).includes(texto) ||
                   normalizarTexto(cliente.estado).startsWith(texto)
@@ -166,9 +156,16 @@ function ClientesPage() {
                 return (
                   <tr key={index} style={{ height: '40px', '--bs-table-bg': colorFondo }}>
                     <td className="text-muted small">{cliente.id_cliente || ''}</td>
+                    
+                    {/* Celda Condicional Inteligente */}
                     <td className="text-start px-3 text-dark fw-medium">
-                      {cliente.nombre ? `${cliente.nombre} ${cliente.apellido}` : ''}
+                      {cliente.id_cliente && (
+                        cliente.tipo_persona === 'juridica'
+                          ? cliente.razon_social
+                          : `${cliente.nombre} ${cliente.apellido}`
+                      )}
                     </td>
+
                     <td className="fw-mono text-dark">{cliente.dni_cuit || ''}</td>
                     <td className="text-dark">{cliente.telefono || ''}</td>
                     <td className="text-dark">{cliente.email || ''}</td>
@@ -201,7 +198,7 @@ function ClientesPage() {
             Mostrando página {paginaActual} de {totalPaginas || 1}
           </div>
 
-        <div className="d-flex gap-2">
+          <div className="d-flex gap-2">
             <button
               className="btn btn-primary"
               style={{

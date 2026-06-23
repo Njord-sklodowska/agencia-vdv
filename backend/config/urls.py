@@ -47,7 +47,7 @@ from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/inventario/', include('inventario.urls')),
+    path('api/inventario/', include('api_core.urls')),
     path('', lambda request: redirect('admin:index')),
     path('api/ventas/', include('ventas.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

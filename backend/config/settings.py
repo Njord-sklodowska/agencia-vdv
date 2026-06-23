@@ -33,7 +33,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'sucursales',
     'inventario',
-    #'core', 
+    'api_core', 
     'ventas', 
    
     'rest_framework',
@@ -91,9 +91,9 @@ DATABASES = {
        'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agencia_vdv',     # Nombre de la base de datos que creaste en MariaDB
         'USER': 'root',            # Tu usuario
-        'PASSWORD': 'pochoclo', # Tu contraseña de MariaDB
+        'PASSWORD': '', # Tu contraseña de MariaDB
         'HOST': '127.0.0.1',
-        'PORT': '3307',            # El puerto específico donde instalaste MariaDB
+        'PORT': '3306',            # El puerto específico donde instalaste MariaDB
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             }
