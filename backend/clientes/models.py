@@ -108,16 +108,46 @@ class Cliente(models.Model):
     fecha_alta = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def _limpiar_numeros(self, value):
+        if not value:
+            return ''
+        return value.replace('-', '').replace('.', '').replace(' ', '')
+
+    def _validar_dni_cuit(self):
+        if not self.dni_cuit:
+            return
+        limpio = self._limpiar_numeros(self.dni_cuit)
+        if not limpio.isdigit():
+            raise ValidationError({'dni_cuit': 'El DNI/CUIT solo debe contener números.'})
+        if self.tipo_persona == 'fisica':
+            if len(limpio) != 8:
+                raise ValidationError({'dni_cuit': f'El DNI debe tener exactamente 8 dígitos. Tiene {len(limpio)}.'})
+            self.dni_cuit = f"{limpio[:2]}-{limpio[2:7]}-{limpio[7]}"
+        elif self.tipo_persona == 'juridica':
+            if len(limpio) != 11:
+                raise ValidationError({'dni_cuit': f'El CUIT debe tener exactamente 11 dígitos. Tiene {len(limpio)}.'})
+            self.dni_cuit = f"{limpio[:2]}-{limpio[2:10]}-{limpio[10]}"
+
+    def _validar_cuil(self):
+        if not self.cuil:
+            return
+        limpio = self._limpiar_numeros(self.cuil)
+        if not limpio.isdigit():
+            raise ValidationError({'cuil': 'El CUIL solo debe contener números.'})
+        if len(limpio) != 11:
+            raise ValidationError({'cuil': f'El CUIT debe tener exactamente 11 dígitos. Tiene {len(limpio)}.'})
+        self.cuil = f"{limpio[:2]}-{limpio[2:10]}-{limpio[10]}"
+
     def clean(self):
 
         if self.tipo_persona == 'fisica':
 
-            if not self.nombre:
+            if not self.nombre or not self.nombre.strip():
                 raise ValidationError({
                     'nombre': 'El nombre es obligatorio.'
                 })
 
-            if not self.apellido:
+            if not self.apellido or not self.apellido.strip():
                 raise ValidationError({
                     'apellido': 'El apellido es obligatorio.'
                 })
@@ -129,7 +159,7 @@ class Cliente(models.Model):
 
         if self.tipo_persona == 'juridica':
 
-            if not self.razon_social:
+            if not self.razon_social or not self.razon_social.strip():
                 raise ValidationError({
                     'razon_social': 'La razón social es obligatoria.'
                 })
@@ -140,6 +170,35 @@ class Cliente(models.Model):
                 raise ValidationError({
                     'fecha_nacimiento': 'La fecha debe ser anterior a hoy.'
                 })
+
+            hoy = timezone.now().date()
+
+            edad = (
+                hoy.year
+                - self.fecha_nacimiento.year
+                - (
+                    (hoy.month, hoy.day)
+                    < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+                )
+            )
+
+            if edad < 18:
+                raise ValidationError({
+                    'fecha_nacimiento': 'El cliente debe ser mayor de 18 años.'
+                })
+
+        self._validar_dni_cuit()
+        self._validar_cuil()
+
+        if not self.telefono.isdigit():
+            raise ValidationError({
+                'telefono': 'El teléfono debe contener solo números.'
+            })
+
+        if len(self.telefono) not in [10, 11]:
+            raise ValidationError({
+                'telefono': 'El teléfono debe tener 10 u 11 dígitos.'
+            })
 
         if not self.domicilio_fiscal:
             self.domicilio_fiscal = self.domicilio_real

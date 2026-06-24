@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { inventarioApi } from '../../api/inventarioApi';
 
@@ -7,7 +7,7 @@ const NuevoVehiculoPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     marca: '',
     modelo: '',
@@ -28,7 +28,7 @@ const NuevoVehiculoPage = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       await inventarioApi.createVehiculo(formData);
       setSuccess(true);
@@ -44,31 +44,27 @@ const NuevoVehiculoPage = () => {
 
   return (
     <div className="fade-in">
-      {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-center mb-2">
+      <div className="page-header">
         <div>
-          <h4 className="mb-0 fw-bold" style={{ color: 'var(--text-dark)' }}>Alta de Vehículo</h4>
-          <p className="mb-0 text-muted small">Ingrese los detalles de la unidad para añadirla al stock.</p>
+          <h4 className="page-title">Alta de Vehículo</h4>
+          <p className="page-subtitle">Ingrese los detalles de la unidad para añadirla al stock.</p>
         </div>
-        <button 
-          className="btn btn-outline-custom btn-sm" 
-          onClick={() => navigate('/inventario')}
-        >
+        <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate('/inventario')}>
           <i className="bi bi-arrow-left me-1"></i> Volver al Stock
         </button>
       </div>
-      
+
       <div className="accent-bar mb-4"></div>
 
       <div className="row justify-content-center">
         <div className="col-lg-8">
-          <div className="card shadow-sm border-0" style={{ borderRadius: '16px', background: '#fff', overflow: 'hidden' }}>
-            <div className="card-header bg-white py-3 border-bottom" style={{ borderBottom: '1px solid #e8dfe1' }}>
-              <h6 className="mb-0 fw-bold" style={{ color: 'var(--text-dark)' }}>
+          <div className="card form-card">
+            <div className="card-header">
+              <h6 className="form-section-title mb-0">
                 <i className="bi bi-car-front-fill me-2 text-primary"></i> Información General
               </h6>
             </div>
-            
+
             <div className="card-body p-4">
               {success && (
                 <div className="alert alert-success d-flex align-items-center" role="alert">
@@ -86,139 +82,64 @@ const NuevoVehiculoPage = () => {
 
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
-                  {/* Marca y Modelo */}
                   <div className="col-md-6">
-                    <label className="form-label small fw-medium text-muted">Marca</label>
-                    <input 
-                      type="text" 
-                      name="marca" 
-                      className="form-control" 
-                      placeholder="Ej: Toyota" 
-                      value={formData.marca}
-                      onChange={handleChange}
-                      required
-                      style={{ border: '1px solid #e8dfe1' }}
-                    />
+                    <label className="form-label form-label-custom">Marca</label>
+                    <input type="text" name="marca" className="form-control" placeholder="Ej: Toyota" value={formData.marca} onChange={handleChange} required />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label small fw-medium text-muted">Modelo</label>
-                    <input 
-                      type="text" 
-                      name="modelo" 
-                      className="form-control" 
-                      placeholder="Ej: Hilux" 
-                      value={formData.modelo}
-                      onChange={handleChange}
-                      required
-                      style={{ border: '1px solid #e8dfe1' }}
-                    />
+                    <label className="form-label form-label-custom">Modelo</label>
+                    <input type="text" name="modelo" className="form-control" placeholder="Ej: Hilux" value={formData.modelo} onChange={handleChange} required />
                   </div>
 
-                  {/* Año y Precio */}
                   <div className="col-md-4">
-                    <label className="form-label small fw-medium text-muted">Año</label>
-                    <input 
-                      type="number" 
-                      name="año" 
-                      className="form-control" 
-                      placeholder="2024" 
-                      value={formData.año}
-                      onChange={handleChange}
-                      required
-                      style={{ border: '1px solid #e8dfe1' }}
-                    />
+                    <label className="form-label form-label-custom">Año</label>
+                    <input type="number" name="año" className="form-control" placeholder="2024" value={formData.año} onChange={handleChange} required />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label small fw-medium text-muted">Precio</label>
+                    <label className="form-label form-label-custom">Precio</label>
                     <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0" style={{ border: '1px solid #e8dfe1' }}>$</span>
-                      <input 
-                        type="text" 
-                        name="precio" 
-                        className="form-control border-start-0" 
-                        placeholder="0.00" 
-                        value={formData.precio}
-                        onChange={handleChange}
-                        required
-                        style={{ border: '1px solid #e8dfe1' }}
-                      />
+                      <span className="input-group-text bg-light border-end-0">$</span>
+                      <input type="text" name="precio" className="form-control border-start-0" placeholder="0.00" value={formData.precio} onChange={handleChange} required />
                     </div>
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label small fw-medium text-muted">Estado</label>
-                    <select 
-                      name="estado" 
-                      className="form-select" 
-                      value={formData.estado}
-                      onChange={handleChange}
-                      style={{ border: '1px solid #e8dfe1' }}
-                    >
+                    <label className="form-label form-label-custom">Estado</label>
+                    <select name="estado" className="form-select" value={formData.estado} onChange={handleChange}>
                       <option value="Nuevo">Nuevo</option>
                       <option value="Usado">Usado</option>
                     </select>
                   </div>
 
-                  {/* Patente / VIN */}
                   <div className="col-md-6">
-                    <label className="form-label small fw-medium text-muted">Patente / VIN</label>
-                    <input 
-                      type="text" 
-                      name="patente" 
-                      className="form-control" 
-                      placeholder="Ingrese la patente" 
-                      value={formData.patente}
-                      onChange={handleChange}
-                      required
-                      style={{ border: '1px solid #e8dfe1' }}
-                    />
+                    <label className="form-label form-label-custom">Patente / VIN</label>
+                    <input type="text" name="patente" className="form-control" placeholder="Ingrese la patente" value={formData.patente} onChange={handleChange} required />
                   </div>
 
-                  {/* Kilometraje (Solo si es usado) */}
                   <div className="col-md-6">
-                    <label className="form-label small fw-medium text-muted">Kilometraje</label>
-                    <input 
-                      type="number" 
-                      name="kilometraje" 
-                      className="form-control" 
-                      placeholder="0 km" 
+                    <label className="form-label form-label-custom">Kilometraje</label>
+                    <input
+                      type="number"
+                      name="kilometraje"
+                      className="form-control"
+                      placeholder="0 km"
                       value={formData.kilometraje}
                       onChange={handleChange}
                       disabled={formData.estado === 'Nuevo'}
-                      style={{ 
-                        border: '1px solid #e8dfe1',
-                        backgroundColor: formData.estado === 'Nuevo' ? '#f8f9fa' : '#fff'
-                      }}
+                      className={formData.estado === 'Nuevo' ? 'form-control-disabled' : ''}
                     />
                   </div>
 
-                  {/* Descripción */}
                   <div className="col-12">
-                    <label className="form-label small fw-medium text-muted">Notas / Descripción</label>
-                    <textarea 
-                      name="descripcion" 
-                      className="form-control" 
-                      rows="3" 
-                      placeholder="Detalles adicionales del vehículo..." 
-                      value={formData.descripcion}
-                      onChange={handleChange}
-                      style={{ border: '1px solid #e8dfe1' }}
-                    ></textarea>
+                    <label className="form-label form-label-custom">Notas / Descripción</label>
+                    <textarea name="descripcion" className="form-control" rows="3" placeholder="Detalles adicionales del vehículo..." value={formData.descripcion} onChange={handleChange}></textarea>
                   </div>
                 </div>
 
                 <div className="mt-5 d-flex gap-3 justify-content-end">
-                  <button 
-                    type="button" 
-                    className="btn btn-outline-custom px-4" 
-                    onClick={() => navigate('/inventario')}
-                  >
+                  <button type="button" className="btn btn-outline-secondary px-4" onClick={() => navigate('/inventario')}>
                     Cancelar
                   </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn-gold px-5 py-2" 
-                    disabled={loading}
-                  >
+                  <button type="submit" className="btn btn-gold" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
                     ) : (
@@ -231,41 +152,6 @@ const NuevoVehiculoPage = () => {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .fade-in {
-          animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .btn-gold {
-          background: var(--accent-gold);
-          color: var(--primary-dark);
-          border: none;
-          font-weight: 600;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-        .btn-gold:hover { background: #b89c45; color: var(--primary-dark); }
-        .btn-outline-custom {
-          border: 1px solid #d4c0c4;
-          color: #5a4a4e;
-          background: transparent;
-          font-size: 13px;
-          transition: all 0.2s;
-        }
-        .btn-outline-custom:hover {
-          background: #f5f0f1;
-          border-color: var(--accent-gold);
-          color: var(--accent-gold);
-        }
-        .form-control:focus, .form-select:focus {
-          border-color: var(--accent-gold) !important;
-          box-shadow: 0 0 0 0.25rem rgba(200, 173, 85, 0.25) !important;
-        }
-      `}</style>
     </div>
   );
 };

@@ -17,7 +17,7 @@ INSTALLED_APPS = [
     'usuario',
     'clientes',
     'inventario',
-    # 'auditoria',
+    'auditoria',
 
     'rest_framework',
     'drf_spectacular',
@@ -53,6 +53,14 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-requested-with",
+    "x-sucursal-id",
+]
 
 ROOT_URLCONF = 'config.urls'
 

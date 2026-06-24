@@ -1,95 +1,106 @@
-# 🔄 Guía de Actualización de Proyecto: Git & Django
+# 🛠️ Manual de Sincronización: Git & Django REST Framework
 
-Esta guía detalla el procedimiento correcto para integrar cambios realizados por otros miembros del equipo en un proyecto basado en **Django REST Framework**, asegurando que tanto el código como la base de datos se mantengan sincronizados.
-
----
-
-## 📋 Flujo de Actualización Paso a Paso
-
-### 1. Actualizar Referencias Remotas
-Primero, informamos a Git sobre los cambios que existen en el servidor sin alterar nuestros archivos locales.
-
-```bash
-git fetch origin
-```
-
-### 2. Inspección de Cambios (Opcional pero Recomendado)
-Antes de fusionar, es útil saber qué se modificó para evitar sorpresas.
-
-**Ver los mensajes de los nuevos commits:**
-```bash
-# Cambia 'main' por la rama correspondiente (ej. develop)
-git log HEAD..origin/main --oneline
-```
-
-**Ver las diferencias exactas en el código:**
-```bash
-git diff HEAD..origin/main
-```
-
-### 3. Descarga y Fusión de Código
-Descargamos los cambios y los unimos con nuestro trabajo actual.
-
-```bash
-git pull origin main
-```
-
-> [!IMPORTANT]
-> **Conflictos de Fusión (Merge Conflicts):**
-> Si Git indica que hay conflictos, deberás:
-> 1. Abrir los archivos en conflicto.
-> 2. Resolver manualmente qué líneas de código conservar.
-> 3. Ejecutar: `git add <archivo_resuelto>` $\rightarrow$ `git commit -m "Resolviendo conflictos"`.
-
-### 4. Actualización de la Base de Datos (Crucial)
-En Django, los cambios en los modelos (nuevas tablas o campos) se registran en archivos de migración. Si no ejecutas este paso, el sistema fallará al no encontrar las tablas en MySQL.
-
-```bash
-# 1. Entrar a la carpeta del backend
-cd backend
-
-# 2. Activar el entorno virtual
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# 3. Aplicar las migraciones descargadas
-python manage.py migrate
-```
-
-#### 💡 Diferencia clave: `makemigrations` vs `migrate`
-
-Es común confundir estos comandos, pero tienen propósitos totalmente distintos:
-
-- **`python manage.py makemigrations`**: 
-  - **¿Qué hace?** Analiza tus modelos en `models.py` y **crea el archivo de instrucciones** (el "plano") en la carpeta `migrations/`.
-  - **¿Cuándo usarlo?** ÚNICAMENTE cuando **tú** has modificado el código de un modelo y quieres preparar el cambio para la base de datos.
-  - **En este flujo:** No se usa al descargar cambios de compañeros porque ellos ya crearon el archivo y tú ya lo descargaste vía Git.
-
-- **`python manage.py migrate`**: 
-  - **¿Qué hace?** Lee los archivos de la carpeta `migrations/` y **ejecuta los cambios reales** en la base de datos MySQL.
-  - **¿Cuándo usarlo?** Siempre que quieras aplicar cambios, ya sean tuyos (después de un `makemigrations`) o los de tus compañeros (después de un `git pull`).
-
-
-### 5. Verificación Final
-Levantamos el servidor para comprobar que la integración fue exitosa.
-
-```bash
-python manage.py runserver
-```
+Esta guía documenta el proceso completo para integrar cambios de equipo, resolver conflictos de ramas y solucionar desincronizaciones de la base de datos en el proyecto Agencia VDV.
 
 ---
 
-## ⚡ Resumen Rápido (Cheat Sheet)
+## 📑 1. Sincronización de Código (Git)
 
-| Acción | Comando | Objetivo |
-| :--- | :--- | :--- |
-| **Sincronizar** | `git fetch origin` | Ver qué hay de nuevo en el servidor. |
-| **Fusionar** | `git pull origin main` | Traer los archivos al local. |
-| **Migrar** | `python manage.py migrate` | Crear tablas/campos en la BD. |
-| **Probar** | `python manage.py runserver` | Verificar funcionamiento. |
+### Flujo Estándar de Actualización
+Cuando un compañero sube cambios, sigue este orden para evitar errores:
+
+1. **Actualizar referencias:** `git fetch origin`
+2. **Inspeccionar commits:** `git log HEAD..origin/main --oneline` (cambia `main` por la rama correspondiente).
+3. **Fusionar cambios:** `git pull origin main`
+
+### 🚨 Solución a "Ramas Divergentes"
+Si al hacer `pull` recibes un error indicando que las ramas han divergido, es porque ambos hicieron commits en el mismo punto de la historia.
+
+**Solución:** Configura la estrategia de fusión (Merge) y vuelve a intentar el pull.
+```bash
+git config pull.rebase false
+git pull origin <nombre-de-la-rama>
+```
+
+### ⚔️ Resolución de Conflictos de Fusión
+Si Git indica `CONFLICT (content)`, significa que dos personas editaron la misma línea.
+
+1. **Abrir el archivo en VS Code:** Busca las marcas `<<<<<<< HEAD` y `>>>>>>>`.
+2. **Decidir:** Elige entre *"Accept Current Change"* (tuyo), *"Accept Incoming Change"* (compañero) o *"Accept Both Changes"*.
+3. **Finalizar:**
+   ```bash
+   git add <archivo_resuelto>
+   git commit -m "Resolviendo conflictos en <archivo>"
+   ```
 
 ---
 
-## 💡 Tips Adicionales
-- **Antes del Pull:** Si tienes cambios sin guardar, haz un `git commit` o usa `git stash` para limpiar tu área de trabajo.
-- **Dudas con la BD:** Si notas que las tablas no se crearon correctamente, verifica que los archivos en la carpeta `migrations/` de las apps hayan sido descargados efectivamente.
+## 🗄️ 2. Gestión de Base de Datos (Django Migrations)
+
+### Conceptos Fundamentales
+Django usa un sistema de "planos" para modificar la base de datos:
+
+- **`makemigrations` (El Plano):** Analiza los cambios en `models.py` y crea un archivo `.py` en la carpeta `migrations/`. **Solo se usa cuando TÚ creas o cambias un modelo.**
+- **`migrate` (La Construcción):** Lee los archivos `.py` de las migraciones y ejecuta el SQL real en MySQL. **Se usa siempre que descargues cambios de otros o después de hacer un makemigrations.**
+
+### 🔍 Verificación de Estado
+Para saber qué migraciones se han aplicado y cuáles faltan:
+```bash
+python manage.py showmigrations
+```
+- `[X]` $\rightarrow$ Aplicada.
+- `[ ]` $\rightarrow$ Pendiente.
+
+---
+
+## 🆘 3. Solución de Errores Comunes de Migración
+
+### Error: `Table already exists` o `Duplicate column name`
+Esto ocurre cuando la base de datos ya tiene la tabla/columna, pero Django no tiene el registro de que la migración se ejecutó (desincronización).
+
+**La Solución: El comando `--fake`**
+Le dice a Django: *"Marca esta migración como hecha, pero NO intentes ejecutar el código SQL"*.
+
+- **Para una migración específica:**
+  `python manage.py migrate <app> <nombre_migracion> --fake`
+- **Para TODA la aplicación (limpieza total):**
+  `python manage.py migrate <app> --fake`
+
+---
+
+## ☢️ 4. La "Opción Nuclear" (Reinicio Total)
+
+Si las migraciones están demasiado corruptas o hay demasiados errores de "Duplicate column", lo más rápido en desarrollo es reiniciar la base de datos.
+
+### Procedimiento de Limpieza Total:
+
+1. **Borrar y recrear la BD en MySQL:**
+   ```sql
+   DROP DATABASE agencia_vdv;
+   CREATE DATABASE agencia_vdv;
+   ```
+
+2. **Aplicar migraciones desde cero:**
+   ```bash
+   python manage.py migrate
+   ```
+
+3. **Cargar datos de prueba (Seed):**
+   Como la BD está vacía, debes cargar los usuarios y sucursales predefinidos:
+   ```bash
+   python manage.py load_usuarios
+   ```
+
+---
+
+## ⚡ Resumen de Comandos Rápidos
+
+| Situación | Comando |
+| :--- | :--- |
+| **Sincronizar código** | `git pull origin <rama>` |
+| **Error de ramas divergentes** | `git config pull.rebase false` $\rightarrow$ `git pull` |
+| **Crear migración propia** | `python manage.py makemigrations` |
+| **Aplicar cambios BD** | `python manage.py migrate` |
+| **Sincronizar BD sin ejecutar SQL** | `python manage.py migrate <app> --fake` |
+| **Ver estado de migraciones** | `python manage.py showmigrations` |
+| **Cargar datos iniciales** | `python manage.py load_usuarios` |

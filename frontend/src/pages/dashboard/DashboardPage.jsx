@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { 
-  useReactTable, 
-  getCoreRowModel, 
-  flexRender, 
-  createColumnHelper 
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  createColumnHelper,
 } from '@tanstack/react-table';
 import { inventarioApi } from '../../api/inventarioApi';
+import BadgeEstado from '../../components/common/BadgeEstado';
 
 const columnHelper = createColumnHelper();
 
@@ -28,11 +29,7 @@ const columns = [
   }),
   columnHelper.accessor('estado', {
     header: 'Estado',
-    cell: info => {
-      const estado = info.getValue();
-      const badgeClass = estado === 'Nuevo' || estado === 'disponible' ? 'badge-gold' : 'badge-salmon';
-      return <span className={`badge ${badgeClass}`}>{estado || '---'}</span>;
-    },
+    cell: info => <BadgeEstado estado={info.getValue()} />,
   }),
   columnHelper.accessor('fecha_alta', {
     header: 'Ingreso',
@@ -40,12 +37,12 @@ const columns = [
   }),
 ];
 
-const MetricCard = ({ label, value, subValue, color = 'var(--accent-gold)' }) => (
-  <div className="col-md-3 col-sm-6 mb-3">
-    <div className="card p-3 shadow-sm border-0" style={{ borderLeft: `4px solid ${color}`, borderRadius: '10px', background: '#fff' }}>
-      <p className="text-muted small mb-1" style={{ fontSize: '12px', fontWeight: 500 }}>{label}</p>
-      <h3 className="fw-bold mb-1" style={{ color: 'var(--text-dark)', fontSize: '24px' }}>{value}</h3>
-      <p className="mb-0 small" style={{ color: color, fontSize: '12px' }}>
+const MetricCard = ({ label, value, subValue, color = '#f0ad4e' }) => (
+  <div className="col-md-3 col-sm-6 mb-3 metric-card">
+    <div className="card p-3 shadow-sm border-0" style={{ borderLeft: `4px solid ${color}` }}>
+      <p className="metric-label">{label}</p>
+      <h3 className="metric-value">{value}</h3>
+      <p className="metric-sub" style={{ color }}>
         <i className="bi bi-info-circle me-1"></i> {subValue}
       </p>
     </div>
@@ -70,9 +67,9 @@ const DashboardPage = () => {
         setLoading(true);
         const [vehiclesData, statsData] = await Promise.all([
           inventarioApi.getVehiculos(),
-          inventarioApi.getStats()
+          inventarioApi.getStats(),
         ]);
-        
+
         const results = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData.results || []);
         setVehicles(results);
         setStats(statsData);
@@ -89,7 +86,7 @@ const DashboardPage = () => {
   }, []);
 
   const data = useMemo(() => vehicles, [vehicles]);
-  
+
   const table = useReactTable({
     data,
     columns,
@@ -98,53 +95,50 @@ const DashboardPage = () => {
 
   return (
     <div className="fade-in">
-      {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-center mb-2">
+      <div className="page-header">
         <div>
-          <h4 className="mb-0 fw-bold" style={{ color: 'var(--text-dark)' }}>Dashboard</h4>
-          <p className="mb-0 text-muted small">Bienvenido de vuelta. Aquí tienes el resumen de tu concesionaria.</p>
+          <h4 className="page-title">Dashboard</h4>
+          <p className="page-subtitle">Bienvenido de vuelta. Aquí tienes el resumen de tu concesionaria.</p>
         </div>
-        <button className="btn btn-outline-custom btn-sm">
+        <button className="btn btn-outline-secondary btn-sm">
           <i className="bi bi-download me-1"></i> Exportar Reporte
         </button>
       </div>
-      
+
       <div className="accent-bar mb-4"></div>
 
-      {/* KPI Row */}
       <div className="row g-3 mb-4">
-        <MetricCard 
-          label="Vehículos en Stock" 
-          value={stats.total_vehiculos} 
-          subValue={`${stats.nuevos} Nuevos / ${stats.usados} Usados`} 
+        <MetricCard
+          label="Vehículos en Stock"
+          value={stats.total_vehiculos}
+          subValue={`${stats.nuevos} Nuevos / ${stats.usados} Usados`}
         />
-        <MetricCard 
-          label="Valor Total Stock" 
-          value={`$${stats.valor_total?.toLocaleString() || '0'}`} 
-          subValue="Precio de venta total" 
-          color="#f4978e" 
+        <MetricCard
+          label="Valor Total Stock"
+          value={`$${stats.valor_total?.toLocaleString() || '0'}`}
+          subValue="Precio de venta total"
+          color="#f4978e"
         />
-        <MetricCard 
-          label="Entregas Pendientes" 
-          value={stats.pendientes_entrega} 
-          subValue="Vendido, no entregado" 
-          color="#af42ae" 
+        <MetricCard
+          label="Entregas Pendientes"
+          value={stats.pendientes_entrega}
+          subValue="Vendido, no entregado"
+          color="#af42ae"
         />
-        <MetricCard 
-          label="Estado del Sistema" 
-          value="Sincronizado" 
-          subValue="Conexión estable" 
-          color="#c8ad55" 
+        <MetricCard
+          label="Sucursales Activas"
+          value="Sincronizado"
+          subValue="Gestión de sedes"
+          color="#c8ad55"
         />
       </div>
 
-      {/* Table Section */}
-      <div className="card shadow-sm border-0" style={{ borderRadius: '12px', background: '#fff' }}>
+      <div className="card shadow-sm border-0 dashboard-table-card">
         <div className="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
-          <h6 className="mb-0 fw-bold" style={{ color: 'var(--text-dark)' }}>
+          <h6 className="mb-0 fw-bold dashboard-table-title">
             <i className="bi bi-car-front me-2 text-primary"></i>Últimos Ingresos al Stock
           </h6>
-          {error && <span className="badge bg-danger-subtle text-danger" style={{ fontSize: '10px' }}>{error}</span>}
+          {error && <span className="badge bg-danger-subtle text-danger dashboard-error-badge">{error}</span>}
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">
@@ -161,7 +155,7 @@ const DashboardPage = () => {
                   {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
-                        <th key={header.id} className="py-3 ps-4 text-muted" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase' }}>
+                        <th key={header.id} className="dashboard-table-th">
                           {flexRender(header.column.columnDef.header, header.getContext())}
                         </th>
                       ))}
@@ -173,7 +167,7 @@ const DashboardPage = () => {
                     table.getRowModel().rows.map(row => (
                       <tr key={row.id}>
                         {row.getVisibleCells().map(cell => (
-                          <td key={cell.id} className="py-3 ps-4" style={{ fontSize: '14px', color: 'var(--text-dark)' }}>
+                          <td key={cell.id} className="dashboard-table-td">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </td>
                         ))}
@@ -193,30 +187,6 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .fade-in {
-          animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .badge-gold { background: #f9f2dc; color: #7a6310; font-weight: 500; }
-        .badge-salmon { background: #fdecea; color: #9b3028; font-weight: 500; }
-        .btn-outline-custom {
-          border: 1px solid #d4c0c4;
-          color: #5a4a4e;
-          background: transparent;
-          font-size: 13px;
-          transition: all 0.2s;
-        }
-        .btn-outline-custom:hover {
-          background: #f5f0f1;
-          border-color: var(--accent-gold);
-          color: var(--accent-gold);
-        }
-      `}</style>
     </div>
   );
 };

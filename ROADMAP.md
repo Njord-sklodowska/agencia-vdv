@@ -15,11 +15,11 @@ Este documento define la hoja de ruta para la construcción del frontend de la c
     - [x] Conexión con SimpleJWT (Backend).
     - [x] Pantalla de Login funcional con usuario real.
     - [x] Gestión de estado global con `AuthContext`.
-- [ ] **UI de Sistema (Próximo Paso):**
-    - [ ] Layout base: Navbar + Sidebar + Footer con Bootstrap 5.
-- [ ] **Pantallas de Impacto:**
-    - [ ] **Dashboard:** Página principal con KPIs básicos (estáticos/reales).
-    - [ ] **Inventario/Stock:** Tabla de vehículos con datos reales usando TanStack Table.
+- [x] **UI de Sistema:**
+    - [x] Layout base: Navbar + Sidebar + Footer con Bootstrap 5.
+- [x] **Pantallas de Impacto:**
+    - [x] **Dashboard:** Página principal con KPIs básicos.
+    - [x] **Inventario/Stock:** Tabla de vehículos con datos reales usando TanStack Table.
 
 ---
 
@@ -32,31 +32,43 @@ Este documento define la hoja de ruta para la construcción del frontend de la c
 - [x] **Estado Global:**
     - [x] `AuthContext.jsx`: user, token, rol.
     - [x] Hook `useAuth.js` para acceso simplificado.
-- [ ] **Seguridad de Rutas:**
-    - [ ] `PrivateRoute.jsx`: Bloqueo de acceso a usuarios no autenticados.
-    - [ ] `RoleRoute.jsx`: Restricción de páginas según el nivel de rol.
+    - [x] Perfil de usuario real en Navbar (`/me/`).
+- [x] **Seguridad de Rutas:**
+    - [x] `PrivateRoute.jsx`: Bloqueo de acceso a usuarios no autenticados.
+    - [x] `RoleRoute.jsx`: Restricción de páginas según el nivel de rol.
 
 ---
 
-## 🚗 Sprint 2: Módulo de Inventario (Core)
-**Objetivo:** Gestión completa del stock de vehículos.
+## 🚗 Sprint 2: Módulo de Inventario y Configuración (Core)
+**Objetivo:** Gestión completa del stock de vehículos y parámetros del sistema, implementando la carga de datos desde el frontend.
 
-- [ ] **Vistas de Stock:**
-    - [ ] Conexión de `VehiculoTabla.jsx` con la API real (paginación y filtros server-side).
-    - [ ] Implementación de `FiltrosStock.jsx` (Marca, Modelo, Estado).
-- [ ] **Gestión de Vehículos:**
-    - [ ] Formulario de Alta/Edición (`VehiculoForm.jsx`) con validaciones de VIN y Patente.
-    - [ ] Lógica de Vehículos Usados (Evaluación técnica).
-    - [ ] Sistema de carga de fotografías y ordenamiento.
+- [x] **Fase 1: Visualización y Filtros (Frontend)**
+    - [x] Conexión de `VehiculoTabla.jsx` con la API real (paginación y filtros server-side).
+    - [x] Implementación de `FiltrosStock.jsx` (Marca, Modelo, Estado).
+- [x] **Fase 2: Gestión de Datos (Frontend + Backend)**
+    - [x] Formulario de Alta/Edición (`VehiculoForm.jsx`) con validaciones de VIN y Patente.
+    - [x] **Módulo de Fotografías:** Implementación completa (Subida, Portada, Zoom y Eliminación).
+    - [x] **Módulo de Traslados:** Implementar interfaz de movimiento de vehículos entre sucursales $\rightarrow$ API.
+    - [x] **Lógica de Vehículos Usados:** Evaluación técnica y Tasación (Estándar de Oro).
+    - [x] **Gestión de Talleres:** CRUD y administración de centros de servicio.
+    - [x] **Gestión de Sucursales:** Administración de sedes y puntos de venta.
+- [x] **Fase 3: Administración del Sistema (Frontend)**
+    - [x] Panel de **Parámetros del Sistema** (CRUD completo conectado a la API).
+    - [x] Visor de **Auditoría** (Logs de actividad del sistema con filtros y paginación).
+    - [x] Sistema de Auditoría Automática (`AuditMixin`) implementada en Backend.
+    - [ ] Gestión de **Usuarios** (Interfaz básica implementada $\rightarrow$ Pendiente CRUD completo).
 
 ---
 
 ## 👥 Sprint 3: Clientes y Flujo de Ventas
 **Objetivo:** Implementar el ciclo comercial completo.
 
-- [ ] **Módulo de Clientes:**
-    - [ ] CRUD de Clientes (Físicos y Jurídicos).
-    - [ ] Buscador rápido por DNI/CUIT para uso en ventas.
+- [x] **Módulo de Clientes (Sprinting ahead ✅):**
+    - [x] CRUD completo conectado a la API.
+    - [x] Implementación de Tabla Profesional: Paginación, Filtrado y Ordenamiento Server-Side.
+    - [x] Modal de Vista Detallada (Read-only).
+    - [x] Borrado Lógico (Desactivación) implementada.
+    - [x] Estética "Modern ERP" aplicada al 100%.
 - [ ] **El Proceso de Venta (Multi-paso):**
     - [ ] Flujo completo desde selección de cliente hasta generación de boleto.
 

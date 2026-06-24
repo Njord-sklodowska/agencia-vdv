@@ -6,6 +6,14 @@ import Layout from './components/common/Layout';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import StockPage from './pages/inventario/StockPage';
 import NuevoVehiculoPage from './pages/inventario/NuevoVehiculoPage';
+import ClientesPage from './pages/clientes/ClientesPage';
+import ParametrosPage from './pages/administracion/ParametrosPage';
+import AuditoriaPage from './pages/administracion/AuditoriaPage';
+import UsuariosPage from './pages/administracion/UsuariosPage';
+import VehiculoUsadoPage from './pages/inventario/VehiculoUsadoPage';
+import TalleresPage from './pages/inventario/TalleresPage';
+import TrasladosPage from './pages/inventario/TrasladosPage';
+import SucursalesPage from './pages/inventario/SucursalesPage';
 
 const PrivateRoute = ({ children }) => {
   const { token } = useAuth();
@@ -34,6 +42,62 @@ const AppRouter = () => {
         <PrivateRoute>
           <Layout>
             <NuevoVehiculoPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/clientes" element={
+        <PrivateRoute>
+          <Layout>
+            <ClientesPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/admin/usuarios" element={
+        <PrivateRoute>
+          <Layout>
+            <UsuariosPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/inventario/usados" element={
+        <PrivateRoute>
+          <Layout>
+            <VehiculoUsadoPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/inventario/talleres" element={
+        <PrivateRoute>
+          <Layout>
+            <TalleresPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/inventario/traslados" element={
+        <PrivateRoute>
+          <Layout>
+            <TrasladosPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/gestion/sucursales" element={
+        <PrivateRoute>
+          <Layout>
+            <SucursalesPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/admin/parametros" element={
+        <PrivateRoute>
+          <Layout>
+            <ParametrosPage />
+          </Layout>
+        </PrivateRoute>
+      } />
+      <Route path="/admin/auditoria" element={
+        <PrivateRoute>
+          <Layout>
+            <AuditoriaPage />
           </Layout>
         </PrivateRoute>
       } />

@@ -6,14 +6,30 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('accessToken'));
+  const [sucursalId, setSucursalId] = useState(localStorage.getItem('sucursalId'));
   const [loading, setLoading] = useState(true);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await api.get('/usuario/usuarios/me/');
+      setUser(response.data);
+      if (response.data.sucursal) {
+        setSucursalId(response.data.sucursal);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (token) {
-      // Aquí podrías llamar a un endpoint /me/ para validar el token al recargar la página
-      setUser({ username: 'Usuario' }); 
+      fetchUserProfile();
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, [token]);
 
   const login = async (username, password) => {
@@ -25,7 +41,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('refreshToken', refresh);
       
       setToken(access);
-      setUser({ username });
+      
+      // Fetch full profile after login to get name, role, etc.
+      await fetchUserProfile();
+      
       return { success: true };
     } catch (error) {
       return { success: false, message: error.response?.data?.detail || 'Error de autenticación' };
@@ -35,12 +54,15 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('sucursalId');
     setToken(null);
+    setSucursalId(null);
     setUser(null);
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, sucursalId, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

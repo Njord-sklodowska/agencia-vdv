@@ -4,13 +4,23 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
 });
 
+// Exportación nombrada para compatibilidad con otros módulos
+export const axiosInstance = api;
+
 // Interceptor de Peticiones: Añadir Token a cada llamada
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
+    const sucursalId = localStorage.getItem('sucursalId');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (sucursalId) {
+      config.headers['X-Sucursal-ID'] = sucursalId;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

@@ -7,11 +7,7 @@ const Navbar = ({ onToggleSidebar }) => {
   return (
     <nav className="navbar navbar-custom px-3 d-flex align-items-center justify-content-between">
       <div className="d-flex align-items-center gap-3">
-        <button 
-          className="btn p-0" 
-          style={{ color: 'var(--accent-green)' }} 
-          onClick={onToggleSidebar}
-        >
+        <button className="btn p-0 navbar-toggle" onClick={onToggleSidebar}>
           <i className="bi bi-list fs-4"></i>
         </button>
         <a className="navbar-brand d-flex align-items-center gap-2 mb-0" href="#">
@@ -22,10 +18,7 @@ const Navbar = ({ onToggleSidebar }) => {
       <div className="d-flex align-items-center gap-3">
         <div className="position-relative">
           <i className="bi bi-bell nav-icon" style={{ cursor: 'pointer' }}></i>
-          <span 
-            className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-            style={{ background: 'var(--accent-gold)', fontSize: '9px', color: 'var(--primary-dark)' }}
-          >
+          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill navbar-badge-notif">
             3
           </span>
         </div>
@@ -35,12 +28,12 @@ const Navbar = ({ onToggleSidebar }) => {
             {user?.username ? user.username.substring(0, 2).toUpperCase() : 'AD'}
           </div>
           <div className="lh-sm">
-            <p style={{ fontSize: '12px', fontWeight: '500' }}>
-              {user?.username || 'Administrador'}
+            <p className="navbar-user-name">
+              {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.username || 'Administrador'}
             </p>
-            <p className="sub">{user?.role || 'Admin'}</p>
+            <p className="sub">{user?.rol_nombre || user?.rol || 'Admin'}</p>
           </div>
-          <i className="bi bi-chevron-down" style={{ color: '#6e5a60', fontSize: '13px' }}></i>
+          <i className="bi bi-chevron-down navbar-chevron"></i>
         </div>
 
         <button className="btn btn-logout btn-sm" onClick={logout}>

@@ -62,6 +62,19 @@ staticfiles/
 *.sql
 *.dump
 
+# --- Documentación personal / ayudas ---
+FUSION_CLIENTES.md
+PROYECTO_ANALISIS.md
+ROADMAP.md
+GIT_DJANGO_UPDATE.md
+DOCUMENTACION_AUDITORIA.md
+pendientes.md
+frontend_concesionaria.md
+docs/
+
+# --- Build frontend ---
+frontend/dist/
+
 # --- Others ---
 .git-rewrite
 .idea/
