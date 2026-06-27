@@ -60,6 +60,15 @@ function ClientesPage() {
       </span>
     );
   };
+  
+  const formatearDocumento = (doc) => {
+    if (!doc) return '';
+    const soloNumeros = doc.toString().replace(/\D/g, '');
+    if (soloNumeros.length === 11) {
+      return `${soloNumeros.substring(0, 2)}-${soloNumeros.substring(2, 10)}-${soloNumeros.substring(10)}`;
+    }
+    return soloNumeros;
+  };
 
   return (
     <div className="container-fluid p-0" style={{ minHeight: '100%' }}>
@@ -166,7 +175,7 @@ function ClientesPage() {
                       )}
                     </td>
 
-                    <td className="fw-mono text-dark">{cliente.dni_cuit || ''}</td>
+                    <td className="fw-mono text-dark">{formatearDocumento(cliente.dni_cuit)}</td>
                     <td className="text-dark">{cliente.telefono || ''}</td>
                     <td className="text-dark">{cliente.email || ''}</td>
                     <td>{cliente.estado ? renderEstado(cliente.estado) : ''}</td>
