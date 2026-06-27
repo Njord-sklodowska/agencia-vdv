@@ -44,6 +44,20 @@ class UsuarioSerializer(serializers.ModelSerializer):
                 "Ya existe un usuario con este email."
             )
         return value
+    
+    def validate_rol(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "El rol es obligatorio."
+            )
+        return value
+
+    def validate_sucursal(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "La sucursal es obligatoria."
+            )
+        return value
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

@@ -15,6 +15,13 @@ class Cliente(models.Model):
         ('inactivo', 'Inactivo'),
     ]
 
+    CONDICION_IVA_CHOICES = [
+        ('responsable_inscripto', 'Responsable Inscripto'),
+        ('monotributista', 'Monotributista'),
+        ('exento', 'Exento'),
+        ('consumidor_final', 'Consumidor Final'),
+    ]
+
     tipo_persona = models.CharField(
         max_length=10,
         choices=TIPO_PERSONA_CHOICES
@@ -32,8 +39,10 @@ class Cliente(models.Model):
     )
 
     condicion_iva = models.CharField(
-        max_length=100
+        max_length=30,
+        choices=CONDICION_IVA_CHOICES
     )
+    
 
     nombre = models.CharField(
         max_length=100,
@@ -51,6 +60,24 @@ class Cliente(models.Model):
         max_length=200,
         null=True,
         blank=True
+    )
+    
+    
+    representante_nombre= models.CharField(
+        max_length=150, 
+        null=True, 
+        blank=True
+    )
+    representante_dni= models.CharField(
+        max_length =20, 
+        null=True, 
+        blank=True
+    )
+
+    representante_cargo= models.CharField(
+        max_length=100, 
+        null=True, 
+        blank= True
     )
 
     nombre_fantasia = models.CharField(
@@ -142,6 +169,17 @@ class Cliente(models.Model):
             if not self.razon_social or not self.razon_social.strip():
                 raise ValidationError({
                     'razon_social': 'La razón social es obligatoria.'
+                })
+
+            if not self.representante_nombre or not self.representante_nombre.strip():
+                raise ValidationError({'representante_nombre':'El Nombre del Representante Legal '})
+
+            if not self.representante_dni:
+                raise ValidationError({
+                    'representante_dni': 'El DNI del Representante Legal es Obligatorio !!!'})
+            if not self.representante_dni.isdigit():
+                raise ValidationError({
+                    "representante_dni": "Debe contener solo números."
                 })
 
         if self.fecha_nacimiento:
