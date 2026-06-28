@@ -81,14 +81,22 @@ const ClienteFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     setIsSubmitting(true);
     setErrors({});
     
+    const datosAEnviar = { ...formData };
+    if (datosAEnviar.tipo_persona === 'juridica') {
+      datosAEnviar.cuil = null;
+    }
+    
+    
     try {
-      await onSubmit(formData);
+      await onSubmit(datosAEnviar);
     } catch (error) {
-      // Parsear errores del backend
       if (error.response && error.response.data) {
+        // Errores de validación del backend (400)
         setErrors(error.response.data);
       } else {
-        setErrors({ non_field_errors: ['Error inesperado al guardar'] });
+        // Error del servidor (500) u otro
+        console.error('Error al guardar:', error);
+        setErrors({ non_field_errors: ['Error del servidor. Revisa la consola para más detalles.'] });
       }
     } finally {
       setIsSubmitting(false);
