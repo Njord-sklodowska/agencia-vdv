@@ -6,7 +6,23 @@ import {
 } from '@tanstack/react-table';
 import PaginadorTabla from '../common/PaginadorTabla';
 import BadgeEstado from '../common/BadgeEstado';
-import { formatDniCuit } from '../../utils/formatters';
+import { formatDniCuit, formatCuil } from '../../utils/formatters';
+
+// Función helper para formatear DNI/CUIT según tipo de persona
+const formatearDniCuit = (valor, tipoPersona) => {
+  if (!valor) return '---';
+  if (tipoPersona === 'fisica') {
+    // DNI: 8 dígitos sin formato
+    return valor;
+  } else {
+    // CUIT: 11 dígitos con guiones XX-XXXXXXXX-X
+    const limpio = valor.replace(/[^\d]/g, '');
+    if (limpio.length === 11) {
+      return `${limpio.slice(0, 2)}-${limpio.slice(2, 10)}-${limpio.slice(10)}`;
+    }
+    return valor;
+  }
+};
 
 const ClienteTabla = ({ clientes, totalCount, pagination, sorting = { id: 'fecha_alta', desc: false }, setPage, setPageSize, toggleSort, filters, onView, onEdit, onDelete }) => {
 
@@ -15,7 +31,20 @@ const ClienteTabla = ({ clientes, totalCount, pagination, sorting = { id: 'fecha
       accessorKey: 'dni_cuit',
       header: 'DNI/CUIT',
       enableSorting: true,
-      cell: info => <span className="fw-bold">{formatDniCuit(info.getValue())}</span>,
+      cell: info => {
+        const cliente = info.row.original;
+        return <span className="fw-bold">{formatearDniCuit(info.getValue(), cliente.tipo_persona)}</span>;
+      },
+    },
+    {
+      accessorKey: 'cuil',
+      header: 'CUIL',
+      enableSorting: false,
+      cell: info => {
+        const cliente = info.row.original;
+        if (cliente.tipo_persona !== 'fisica') return '---';
+        return formatCuil(info.getValue());
+      },
     },
     {
       accessorKey: 'full_name',

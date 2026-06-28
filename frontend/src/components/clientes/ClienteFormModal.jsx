@@ -47,9 +47,20 @@ const ClienteFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     }
   }, [initialData, isOpen]);
 
+  const _limpiarNumeros = (valor) => {
+    return valor.replace(/[-\s.]/g, '').replace(/[^\d]/g, '');
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    let valorLimpio = value;
+    
+    // Limpiar dni_cuit y cuil de guiones/caracteres especiales
+    if (name === 'dni_cuit' || name === 'cuil') {
+      valorLimpio = _limpiarNumeros(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: valorLimpio }));
   };
 
   const handleSubmit = (e) => {
@@ -87,15 +98,22 @@ const ClienteFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label small fw-bold">DNI / CUIT</label>
+                  <label className="form-label small fw-bold">
+                    {formData.tipo_persona === 'fisica' ? 'DNI' : 'CUIT'}
+                  </label>
                   <input
                     type="text"
                     className="form-control"
                     name="dni_cuit"
                     value={formData.dni_cuit}
                     onChange={handleChange}
+                    placeholder={formData.tipo_persona === 'fisica' ? 'Ej: 23123456' : 'Ej: 30232133545'}
+                    maxLength={formData.tipo_persona === 'fisica' ? 8 : 11}
                     required
                   />
+                  <small className="text-muted">
+                    {formData.tipo_persona === 'fisica' ? '8 dígitos sin guiones' : '11 dígitos sin guiones'}
+                  </small>
                 </div>
 
                 {formData.tipo_persona === 'fisica' ? (
@@ -110,7 +128,17 @@ const ClienteFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                     </div>
                     <div className="col-md-6">
                       <label className="form-label small fw-bold">CUIL</label>
-                      <input type="text" className="form-control" name="cuil" value={formData.cuil} onChange={handleChange} required />
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        name="cuil" 
+                        value={formData.cuil} 
+                        onChange={handleChange} 
+                        placeholder="Ej: 23231234565"
+                        maxLength={11}
+                        required 
+                      />
+                      <small className="text-muted">11 dígitos sin guiones</small>
                     </div>
                   </>
                 ) : (
