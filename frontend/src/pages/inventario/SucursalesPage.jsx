@@ -60,19 +60,12 @@ const SucursalesPage = () => {
   };
 
   const handleSaveSucursal = async (formData) => {
-    try {
-      const result = selectedSucursal
-        ? await updateSucursal(selectedSucursal.id, formData)
-        : await addSucursal(formData);
-
-      if (result.success) {
-        handleCloseModal();
-      } else {
-        alert(`Error al guardar la sucursal:\n${result.error}`);
-      }
-    } catch (error) {
-      alert('Error inesperado al guardar la sucursal.');
+    if (selectedSucursal) {
+      await updateSucursal(selectedSucursal.id, formData);
+    } else {
+      await addSucursal(formData);
     }
+    handleCloseModal();
   };
 
   return (

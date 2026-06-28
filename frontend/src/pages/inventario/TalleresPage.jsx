@@ -59,19 +59,12 @@ const TalleresPage = () => {
   };
 
   const handleSaveTaller = async (formData) => {
-    try {
-      const result = selectedTaller
-        ? await updateTaller(selectedTaller.id, formData)
-        : await addTaller(formData);
-
-      if (result.success) {
-        handleCloseModal();
-      } else {
-        alert(`Error al guardar el taller:\n${result.error}`);
-      }
-    } catch (error) {
-      alert('Error inesperado al guardar el taller.');
+    if (selectedTaller) {
+      await updateTaller(selectedTaller.id, formData);
+    } else {
+      await addTaller(formData);
     }
+    handleCloseModal();
   };
 
   return (
