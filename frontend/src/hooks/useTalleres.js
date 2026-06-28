@@ -72,36 +72,18 @@ export const useTalleres = () => {
   };
 
   const addTaller = async (data) => {
-    try {
-      await inventarioApi.createTaller(data);
-      await fetchTalleres();
-      return { success: true };
-    } catch (error) {
-      console.error('Error creating taller:', error);
-      return { success: false, error };
-    }
+    await inventarioApi.createTaller(data);
+    await fetchTalleres();
   };
 
   const updateTaller = async (id, data) => {
-    try {
-      await inventarioApi.updateTaller(id, data);
-      await fetchTalleres();
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating taller:', error);
-      return { success: false, error };
-    }
+    await inventarioApi.updateTaller(id, data);
+    await fetchTalleres();
   };
 
   const deleteTaller = async (id) => {
-    try {
-      await inventarioApi.deleteTaller(id);
-      await fetchTalleres();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting taller:', error);
-      return { success: false, error };
-    }
+    await inventarioApi.deleteTaller(id);
+    await fetchTalleres();
   };
 
   return {

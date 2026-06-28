@@ -92,36 +92,18 @@ export const useSucursales = () => {
   };
 
   const addSucursal = async (data) => {
-    try {
-      await sucursalesApi.createSucursal(data);
-      await fetchSucursales();
-      return { success: true };
-    } catch (error) {
-      console.error('Error creating sucursal:', error);
-      return { success: false, error };
-    }
+    await sucursalesApi.createSucursal(data);
+    await fetchSucursales();
   };
 
   const updateSucursal = async (id, data) => {
-    try {
-      await sucursalesApi.updateSucursal(id, data);
-      await fetchSucursales();
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating sucursal:', error);
-      return { success: false, error };
-    }
+    await sucursalesApi.updateSucursal(id, data);
+    await fetchSucursales();
   };
 
   const deleteSucursal = async (id) => {
-    try {
-      await sucursalesApi.deleteSucursal(id);
-      await fetchSucursales();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting sucursal:', error);
-      return { success: false, error };
-    }
+    await sucursalesApi.deleteSucursal(id);
+    await fetchSucursales();
   };
 
   return {
