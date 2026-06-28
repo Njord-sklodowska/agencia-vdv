@@ -56,35 +56,14 @@ const ClientesPage = () => {
     setIsViewModalOpen(false);
   };
 
-  const parseErrors = (error) => {
-    if (error.response && error.response.data) {
-      const data = error.response.data;
-      if (typeof data === 'object') {
-        const messages = Object.entries(data)
-          .map(([field, errors]) => {
-            const fieldName = field.replace('_', ' ').toUpperCase();
-            return `${fieldName}: ${Array.isArray(errors) ? errors.join(', ') : errors}`;
-          })
-          .join('\n');
-        return messages || 'Error desconocido en la validación';
-      }
-      if (typeof data === 'string') return data;
-    }
-    return error.message || 'Ocurrió un error inesperado';
-  };
-
   const handleSaveCliente = async (formData) => {
-    try {
-      if (selectedCliente) {
-        await clientesApi.updateCliente(selectedCliente.id, formData);
-      } else {
-        await clientesApi.createCliente(formData);
-      }
-      await refresh();
-      handleCloseModal();
-    } catch (error) {
-      alert(`Error al guardar el cliente:\n\n${parseErrors(error)}`);
+    if (selectedCliente) {
+      await clientesApi.updateCliente(selectedCliente.id, formData);
+    } else {
+      await clientesApi.createCliente(formData);
     }
+    await refresh();
+    handleCloseModal();
   };
 
   const handleDeleteCliente = async (cliente) => {
