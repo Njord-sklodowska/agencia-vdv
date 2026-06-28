@@ -45,7 +45,10 @@ const TallerFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
       <div className="modal-dialog modal-md modal-dialog-centered">
         <div className="modal-content border-0 shadow">
           <div className="modal-header modal-header-dark">
-            <h5 className="modal-title fw-bold">{initialData ? 'Editar Taller' : 'Nuevo Taller'}</h5>
+            <h5 className="modal-title fw-bold">
+              <i className={`bi ${initialData ? 'bi-pencil-square' : 'bi-wrench-adjustable'} me-2`}></i>
+              {initialData ? 'Editar Taller' : 'Nuevo Taller'}
+            </h5>
             <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
           </div>
           <form onSubmit={onFormSubmit}>

@@ -83,7 +83,7 @@ const SucursalesPage = () => {
           <p className="page-subtitle">Administración de los puntos de venta y centros operativos.</p>
         </div>
         <button className="btn btn-gold" onClick={() => handleOpenModal()}>
-          <i className="bi bi-building-plus-fill me-2"></i>
+          <i className="bi bi-plus-lg me-2"></i>
           Nueva Sucursal
         </button>
       </div>
