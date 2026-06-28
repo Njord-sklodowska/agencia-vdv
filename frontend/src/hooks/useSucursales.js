@@ -19,6 +19,18 @@ export const useSucursales = () => {
     id: 'nombre',
     desc: false,
   });
+  const [provincias, setProvincias] = useState([]);
+
+  const fetchProvincias = useCallback(async () => {
+    try {
+      const data = await sucursalesApi.getSucursales({ page_size: 1000 });
+      const todasLasSucursales = data.results || data;
+      const provsUnicas = [...new Set(todasLasSucursales.map(s => s.provincia).filter(Boolean))];
+      setProvincias(provsUnicas.sort());
+    } catch (error) {
+      console.error('Error fetching provincias:', error);
+    }
+  }, []);
 
   const fetchSucursales = useCallback(async () => {
     setLoading(true);
@@ -43,6 +55,10 @@ export const useSucursales = () => {
       setLoading(false);
     }
   }, [pagination, filters, sorting]);
+
+  useEffect(() => {
+    fetchProvincias();
+  }, [fetchProvincias]);
 
   useEffect(() => {
     fetchSucursales();
@@ -115,6 +131,7 @@ export const useSucursales = () => {
     pagination,
     filters,
     sorting,
+    provincias,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,

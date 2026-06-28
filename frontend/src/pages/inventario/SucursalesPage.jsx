@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSucursales } from '../../hooks/useSucursales';
 import SucursalTabla from '../../components/inventario/SucursalTabla';
 import SucursalFormModal from '../../components/inventario/SucursalFormModal';
@@ -13,6 +13,7 @@ const SucursalesPage = () => {
     pagination,
     filters,
     sorting,
+    provincias,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,
@@ -23,12 +24,6 @@ const SucursalesPage = () => {
     deleteSucursal,
     refresh
   } = useSucursales();
-
-  // Obtener lista única de provincias de las sucursales
-  const provincias = useMemo(() => {
-    const provs = [...new Set(sucursales.map(s => s.provincia).filter(Boolean))];
-    return provs.sort();
-  }, [sucursales]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
