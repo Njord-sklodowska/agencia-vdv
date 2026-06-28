@@ -1,16 +1,17 @@
 
 from rest_framework import serializers
+from config.serializers import ValidatedModelSerializer
 from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, VehiculoUsado, TrasladoVehiculo
 import datetime 
 
-class MarcaSerializer(serializers.ModelSerializer):
+class MarcaSerializer(ValidatedModelSerializer):
     class Meta:
         model = Marca
         fields = ['id', 'nombre', 'updated_at']
         read_only_fields = ['updated_at']
 
 
-class ModeloSerializer(serializers.ModelSerializer):
+class ModeloSerializer(ValidatedModelSerializer):
     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
 
     class Meta:
@@ -19,14 +20,14 @@ class ModeloSerializer(serializers.ModelSerializer):
         read_only_fields = ['updated_at']
 
 
-class FotografiaVehiculoSerializer(serializers.ModelSerializer):
+class FotografiaVehiculoSerializer(ValidatedModelSerializer):
     class Meta:
         model = Fotografia_Vehiculo
         fields = ['id', 'archivo', 'nombre_original', 'es_portada', 'orden', 'tamano_bytes', 'mime_type', 'fecha_alta']
         read_only_fields = ['tamano_bytes', 'mime_type', 'fecha_alta']
 
 
-class VehiculoSerializer(serializers.ModelSerializer):
+class VehiculoSerializer(ValidatedModelSerializer):
     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
     modelo_nombre = serializers.CharField(source='modelo.nombre', read_only=True)
     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
@@ -65,14 +66,14 @@ class VehiculoSerializer(serializers.ModelSerializer):
             data['advertencia'] = 'El precio de venta es inferior al costo.'
         return data
 
-class TallerSerializer(serializers.ModelSerializer):
+class TallerSerializer(ValidatedModelSerializer):
     class Meta:
         model = Taller
         fields = ['id', 'nombre', 'direccion', 'telefono', 'email', 'estado', 'fecha_alta', 'updated_at']
         read_only_fields = ['fecha_alta', 'updated_at']
 
 
-class VehiculoUsadoSerializer(serializers.ModelSerializer):
+class VehiculoUsadoSerializer(ValidatedModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
     taller_nombre = serializers.CharField(source='taller.nombre', read_only=True)
     usuario_autoriza_nombre = serializers.CharField(source='usuario_autoriza.get_full_name', read_only=True)
@@ -162,7 +163,7 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('La fecha de evaluación no puede ser anterior a 30 días.')
         return value    
     
-class TrasladoVehiculoSerializer(serializers.ModelSerializer):
+class TrasladoVehiculoSerializer(ValidatedModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
     sucursal_origen_nombre = serializers.CharField(source='sucursal_origen.nombre', read_only=True)
     sucursal_destino_nombre = serializers.CharField(source='sucursal_destino.nombre', read_only=True)

@@ -1,8 +1,8 @@
-from rest_framework import serializers
+from config.serializers import ValidatedModelSerializer
 from .models import Sucursal
 
 
-class SucursalSerializer(serializers.ModelSerializer):
+class SucursalSerializer(ValidatedModelSerializer):
     class Meta:
         model = Sucursal
         fields = '__all__'

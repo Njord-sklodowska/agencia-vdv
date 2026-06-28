@@ -1,8 +1,8 @@
-from rest_framework import serializers
+from config.serializers import ValidatedModelSerializer
 from .models import ParametroSistema
 
 
-class ParametroSistemaSerializer(serializers.ModelSerializer):
+class ParametroSistemaSerializer(ValidatedModelSerializer):
 
     class Meta:
         model = ParametroSistema
