@@ -82,7 +82,7 @@ const TalleresPage = () => {
           <p className="page-subtitle">Administración de talleres evaluadores y centros de servicio.</p>
         </div>
         <button className="btn btn-gold" onClick={() => handleOpenModal()}>
-          <i className="bi bi-building-plus-fill me-2"></i>
+          <i className="bi bi-plus-lg me-2"></i>
           Nuevo Taller
         </button>
       </div>

@@ -138,7 +138,8 @@ class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Foto establecida como portada'}, status=status.HTTP_200_OK)
 
 
-class TallerViewSet(viewsets.ModelViewSet):
+class TallerViewSet(AuditMixin, viewsets.ModelViewSet):
+    modulo_name = "Talleres"
     queryset = Taller.objects.all()
     serializer_class = TallerSerializer
     permission_classes = [IsAuthenticated]
@@ -147,6 +148,18 @@ class TallerViewSet(viewsets.ModelViewSet):
     filterset_fields = ['estado']
     search_fields = ['nombre', 'direccion', 'telefono', 'email']
     ordering_fields = ['nombre', 'fecha_alta', 'estado']
+
+    def perform_destroy(self, instance):
+        """Borrado lógico: cambia estado a 'inactivo'"""
+        instance.estado = 'inactivo'
+        instance.save()
+        desc = f"Se desactivó el taller {instance.nombre} (ID: {instance.pk})"
+        self._log_action(instance, 'ELIMINAR', desc)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({'detail': 'Taller desactivado correctamente.'}, status=status.HTTP_200_OK)
 
 
 class VehiculoUsadoViewSet(viewsets.ModelViewSet):
