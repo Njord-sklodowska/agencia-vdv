@@ -25,6 +25,12 @@ const TallerTabla = ({ talleres, totalCount, pagination, sorting = { id: 'nombre
       accessorKey: 'telefono',
       header: 'Teléfono',
       enableSorting: false,
+      cell: info => {
+        const valor = info.getValue();
+        if (!valor) return '---';
+        // Mostrar sin guiones ni espacios
+        return valor.replace(/[-\s.]/g, '');
+      },
     },
     {
       accessorKey: 'email',

@@ -35,6 +35,12 @@ const SucursalTabla = ({ sucursales, totalCount, pagination, sorting = { id: 'no
       accessorKey: 'telefono',
       header: 'Teléfono',
       enableSorting: false,
+      cell: info => {
+        const valor = info.getValue();
+        if (!valor) return '---';
+        // Mostrar sin guiones ni espacios
+        return valor.replace(/[-\s.]/g, '');
+      },
     },
     {
       accessorKey: 'email',

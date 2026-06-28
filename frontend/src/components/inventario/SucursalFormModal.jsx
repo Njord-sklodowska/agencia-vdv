@@ -24,9 +24,20 @@ const SucursalFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     clearErrors();
   }, [initialData, isOpen]);
 
+  const _limpiarTelefono = (valor) => {
+    return valor ? valor.replace(/[-\s.]/g, '') : valor;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    let valorLimpio = value;
+    
+    // Limpiar teléfonos de guiones/espacios
+    if (name === 'telefono' || name === 'telefono_alternativo') {
+      valorLimpio = _limpiarTelefono(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: valorLimpio }));
   };
 
   const onFormSubmit = async (e) => {
