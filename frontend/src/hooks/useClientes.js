@@ -76,36 +76,18 @@ export const useClientes = () => {
   };
 
   const addCliente = async (clienteData) => {
-    try {
-      await clientesApi.createCliente(clienteData);
-      await fetchClientes();
-      return { success: true };
-    } catch (error) {
-      console.error('Error creating client:', error);
-      return { success: false, error };
-    }
+    await clientesApi.createCliente(clienteData);
+    await fetchClientes();
   };
 
   const updateCliente = async (id, clienteData) => {
-    try {
-      await clientesApi.updateCliente(id, clienteData);
-      await fetchClientes();
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating client:', error);
-      return { success: false, error };
-    }
+    await clientesApi.updateCliente(id, clienteData);
+    await fetchClientes();
   };
 
   const deleteCliente = async (id) => {
-    try {
-      await clientesApi.deleteCliente(id);
-      await fetchClientes();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      return { success: false, error };
-    }
+    await clientesApi.deleteCliente(id);
+    await fetchClientes();
   };
 
   return {

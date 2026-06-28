@@ -4,7 +4,6 @@ import ClienteTabla from '../../components/clientes/ClienteTabla';
 import ClienteFormModal from '../../components/clientes/ClienteFormModal';
 import ClienteViewModal from '../../components/clientes/ClienteViewModal';
 import Spinner from '../../components/common/Spinner';
-import { clientesApi } from '../../api/clientesApi';
 
 const ClientesPage = () => {
   const {
@@ -14,6 +13,9 @@ const ClientesPage = () => {
     pagination,
     filters,
     sorting,
+    addCliente,
+    updateCliente,
+    deleteCliente,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,
@@ -58,22 +60,16 @@ const ClientesPage = () => {
 
   const handleSaveCliente = async (formData) => {
     if (selectedCliente) {
-      await clientesApi.updateCliente(selectedCliente.id, formData);
+      await updateCliente(selectedCliente.id, formData);
     } else {
-      await clientesApi.createCliente(formData);
+      await addCliente(formData);
     }
-    await refresh();
     handleCloseModal();
   };
 
   const handleDeleteCliente = async (cliente) => {
     if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${cliente.nombre || cliente.razon_social}?`)) return;
-    try {
-      await clientesApi.deleteCliente(cliente.id);
-      await refresh();
-    } catch (error) {
-      alert(`Error al eliminar el cliente:\n\n${parseErrors(error)}`);
-    }
+    await deleteCliente(cliente.id);
   };
 
   return (
