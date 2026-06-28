@@ -14,6 +14,13 @@ class Cliente(models.Model):
         ('activo', 'Activo'),
         ('inactivo', 'Inactivo'),
     ]
+    
+    CONDICION_IVA_CHOICES = [
+        ('responsable_inscripto', 'Responsable_inscripto'),
+        ('monotributista', 'Monotributista'),
+        ('exento', 'Exento'),
+        ('consumidor_final', 'Consumidor_final'),
+    ]
 
     tipo_persona = models.CharField(
         max_length=10,
@@ -32,6 +39,7 @@ class Cliente(models.Model):
     )
 
     condicion_iva = models.CharField(
+    	choices=CONDICION_IVA_CHOICES,
         max_length=100
     )
 

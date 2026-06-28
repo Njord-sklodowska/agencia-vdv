@@ -125,11 +125,21 @@ const ClienteFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
                     </div>
                   </>
                 )}
-
-                <div className="col-md-6">
+	
+		<div className="col-md-6">
                   <label className="form-label small fw-bold">Condición IVA</label>
-                  <input type="text" className="form-control" name="condicion_iva" value={formData.condicion_iva} onChange={handleChange} required />
-                </div>
+                  <select
+                    className="form-select"
+                    name="condicion_iva"
+                    value={formData.condicion_iva}
+                    onChange={handleChange}
+                  >
+                    <option value="responsable_inscripto">Responsable_inscripto</option>
+                    <option value="monotributista">Monotributista</option>
+                    <option value="exento">Exento</option>
+                    <option value="consumidor_final">Consumidor_final</option>
+                  </select>
+                </div>                
 
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">Teléfono</label>

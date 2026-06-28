@@ -63,6 +63,14 @@ staticfiles/
 *.dump
 
 # --- Documentación personal / ayudas ---
+# Ignorar toda la documentación .md (excepto README)
+*.md
+!README.md
+
+# Excepto los que están en docs/
+docs/
+
+# Mantener compatibilidad con archivos existentes
 FUSION_CLIENTES.md
 PROYECTO_ANALISIS.md
 ROADMAP.md
@@ -70,7 +78,7 @@ GIT_DJANGO_UPDATE.md
 DOCUMENTACION_AUDITORIA.md
 pendientes.md
 frontend_concesionaria.md
-docs/
+CONSULTAS_CONCEPTOS.md
 
 # --- Build frontend ---
 frontend/dist/
