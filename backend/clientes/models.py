@@ -156,8 +156,14 @@ class Cliente(models.Model):
 
     def _validar_cuil(self):
         """Valida CUIL para persona física y guarda limpio (sin guiones)"""
-        if not self.cuil:
+        # El CUIL solo aplica para persona física
+        if self.tipo_persona != 'fisica':
+            self.cuil = None
             return
+        
+        # Para persona física, el CUIL es obligatorio
+        if not self.cuil:
+            return  # Será validado como campo requerido en clean()
         
         limpio = self._limpiar_numeros(self.cuil)
         
@@ -174,7 +180,7 @@ class Cliente(models.Model):
         
         # Los 8 dígitos centrales deben coincidir con el DNI
         dni_central = limpio[2:10]
-        if self.tipo_persona == 'fisica' and self.dni_cuit and dni_central != self.dni_cuit:
+        if self.dni_cuit and dni_central != self.dni_cuit:
             raise ValidationError({'cuil': f'Los 8 dígitos centrales del CUIL ({dni_central}) deben coincidir con el DNI ({self.dni_cuit}).'})
         
         # Guardar limpio, sin guiones
