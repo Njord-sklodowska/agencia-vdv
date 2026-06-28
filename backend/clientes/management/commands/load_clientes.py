@@ -15,7 +15,8 @@ class Command(BaseCommand):
         apellidos = ["García", "Rodríguez", "López", "Martínez", "González", "Sánchez", "Pérez", "Gómez", "Fernández", "Díaz"]
         ciudades = ["San Miguel", "Concepción", "Banda", "Tucumán", "Yerba Buena"]
         calles = ["Av. Mitre", "Calle Belgrano", "Av. Alem", "Calle San Martín", "Av. Colombia"]
-        iva_opciones = ["Responsable Inscripto", "Monotributista", "Consumidor Final"]
+        iva_opciones = ["responsable_inscripto", "monotributista", "consumidor_final"]
+        cuil_prefijos = ["20", "23", "24", "27"]
 
         # Datos para generar personas jurídicas
         razones_sociales = [
@@ -33,10 +34,12 @@ class Command(BaseCommand):
             try:
                 nombre = random.choice(nombres)
                 apellido = random.choice(apellidos)
-                # DNI: 8 dígitos (20 + 6 dígitos)
-                dni = f"20{random.randint(100000, 999999)}"
-                # CUIL: 11 dígitos (20 + 8 dígitos + dígito verificador)
-                cuil = f"20{random.randint(10000000, 99999999)}{random.randint(0, 9)}"
+                # DNI: 8 dígitos - generar DNI válido
+                dni = f"{random.randint(20, 45)}{random.randint(100000, 999999)}"
+                # CUIL: 11 dígitos (prefijo + DNI + verificador)
+                prefijo = random.choice(cuil_prefijos)
+                verificador = random.randint(0, 9)
+                cuil = f"{prefijo}{dni}{verificador}"
                 
                 cliente = Cliente(
                     tipo_persona='fisica',
@@ -61,17 +64,19 @@ class Command(BaseCommand):
                 failure_count += 1
 
         # 2. Generar Personas Jurídicas (10 clientes)
+        cuit_prefijos = ["30", "33", "34"]
         for i in range(len(razones_sociales)):
             try:
-                # CUIT: 11 dígitos (30 + 8 dígitos + dígito verificador)
-                cuit = f"30{random.randint(10000000, 99999999)}{random.randint(0, 9)}"
+                # CUIT: 11 dígitos (prefijo 30/33/34 + 8 dígitos + verificador)
+                prefijo = random.choice(cuit_prefijos)
+                cuit = f"{prefijo}{random.randint(10000000, 99999999)}{random.randint(0, 9)}"
                 
                 cliente = Cliente(
                     tipo_persona='juridica',
                     dni_cuit=cuit,
                     razon_social=razones_sociales[i],
                     nombre_fantasia=fantasias[i],
-                    condicion_iva="Responsable Inscripto",
+                    condicion_iva="responsable_inscripto",
                     telefono=f"3814{random.randint(1000000, 9999999)}",
                     domicilio_real=f"{random.choice(calles)} {random.randint(100, 2000)}, {random.choice(ciudades)}",
                     estado='activo'
