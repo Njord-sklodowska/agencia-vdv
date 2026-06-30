@@ -43,6 +43,11 @@ vin_validator = RegexValidator(
     code='invalid_vin'
 )
 
+patente_validator = RegexValidator(
+        regex=r'^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$',
+        message='Formato de patente inválido. Use ABC123 (formato viejo) o AB123CD (formato Mercosur).'
+    )
+
 class Vehiculo(models.Model):
     # Enums
     CONDICION_CHOICES = [('0km', '0km'), ('usado', 'Usado')]
@@ -63,15 +68,9 @@ class Vehiculo(models.Model):
     vin = models.CharField(max_length=17,unique=True,null=True, blank=False, validators=[vin_validator],help_text="Ingrese el número de chasis (VIN) de 17 caracteres."
     )
 
-    patente = models.CharField(max_length=10, null=True, blank=True)
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['patente'], 
-                name='unique_patente_no_nula', 
-                condition=models.Q(patente__isnull=False)
-            )
-        ]
+    patente = models.CharField(max_length=10, null=True, blank=True, validators=[patente_validator]
+    )
+    
     anio = models.SmallIntegerField(validators=[MinValueValidator(1990), MaxValueValidator(datetime.date.today().year + 1)])
     color = models.CharField(max_length=50)
     precio_costo = models.DecimalField(max_digits=12, decimal_places=2) # Lógica de visibilidad en Serializer
@@ -125,13 +124,15 @@ class Vehiculo(models.Model):
         
         #  Validación para 0KM
         if self.condicion_vehiculo == '0km':
-            if self.patente and self.estado != 'vendido':
-                raise ValidationError({"patente": "Un vehículo 0km no debe tener patente asignada."})
+            if self.patente and self.estado in ['en_stock', 'reservado']:
+                raise ValidationError({"patente": "Un vehículo 0km no puede tener patente mientras está en stock o reservado. La patente se asigna recién al confirmarse la venta."})
            
             if (self.kilometraje or 0) > 500:
                 raise ValidationError({"kilometraje": "Un vehículo 0km no puede tener más de 500 km."})
         
         if self.entregado:
+            if self.estado != 'vendido':
+                raise ValidationError({'entregado': 'Solo se puede marcar como entregado un vehículo en estado vendido.'})
             if self.condicion_vehiculo == '0km' and not self.patente:
                 raise ValidationError({'patente': 'Para marcar como entregado un 0km debe tener patente asignada.'})
     

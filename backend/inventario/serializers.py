@@ -85,7 +85,15 @@ class VehiculoSerializer(serializers.ModelSerializer):
         if errores:
             raise serializers.ValidationError(errores)
 
-        instance = Vehiculo(**data)
+        if self.instance:
+            # Update (PATCH/PUT): partimos de los datos reales del vehiculo y solo pisamos los campos que vinieron en este request.
+            datos_completos = {**self.instance.__dict__, **data}
+            datos_completos.pop('_state', None)
+            instance = Vehiculo(**datos_completos)
+            instance.pk = self.instance.pk
+        else:
+            # Create: no hay datos previos, se construye desde cero.
+            instance = Vehiculo(**data)
         try:
             instance.clean()
         except ValidationError as e:
@@ -156,29 +164,46 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        vehiculo = data.get('vehiculo')
+    # Combinar datos existentes con los nuevos para soportar PATCH parcial
+        if self.instance:
+            datos_completos = {
+                'vehiculo': data.get('vehiculo', self.instance.vehiculo),
+                'taller': data.get('taller', self.instance.taller),
+                'precio_info_auto': data.get('precio_info_auto', self.instance.precio_info_auto),
+                'porcentaje_deduccion': data.get('porcentaje_deduccion', self.instance.porcentaje_deduccion),
+                'fecha_evaluacion': data.get('fecha_evaluacion', self.instance.fecha_evaluacion),
+                'estado_cubierta': data.get('estado_cubierta', self.instance.estado_cubierta),
+                'estado_motor': data.get('estado_motor', self.instance.estado_motor),
+                'estado_chapa_pintura': data.get('estado_chapa_pintura', self.instance.estado_chapa_pintura),
+                'estado_interior': data.get('estado_interior', self.instance.estado_interior),
+                'fecha_ingreso': data.get('fecha_ingreso', self.instance.fecha_ingreso),
+            }
+        else:
+            datos_completos = data
+
+        vehiculo = datos_completos.get('vehiculo')
         if vehiculo and vehiculo.condicion_vehiculo != 'usado':
             raise serializers.ValidationError(
                 {'vehiculo': 'Solo se pueden registrar vehículos con condición usado.'}
             )
 
-        taller = data.get('taller')
+        taller = datos_completos.get('taller')
         if not taller:
             for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion']:
-                if data.get(campo) is not None:
+                if datos_completos.get(campo) is not None:
                     raise serializers.ValidationError(
                         {campo: 'Este campo debe ser nulo cuando no hay taller asignado.'}
                     )
         else:
             for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion',
-                          'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior']:
-                if not data.get(campo):
+                        'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior']:
+                if not datos_completos.get(campo):
                     raise serializers.ValidationError(
                         {campo: 'Este campo es obligatorio cuando hay taller asignado.'}
                     )
 
-        fecha_ingreso = data.get('fecha_ingreso')
-        fecha_evaluacion = data.get('fecha_evaluacion')
+        fecha_ingreso = datos_completos.get('fecha_ingreso')
+        fecha_evaluacion = datos_completos.get('fecha_evaluacion')
         if fecha_ingreso and fecha_evaluacion and fecha_evaluacion > fecha_ingreso:
             raise serializers.ValidationError(
                 {'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'}
