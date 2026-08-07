@@ -9,14 +9,14 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 
 
-# Marca =============================================================================
+# Marca ================================================================
 class Marca(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nombre
-# Modelo ==============================================================================
+# Modelo ==============================================================
 
 class Modelo(models.Model):
     CARROCERIA_CHOICES = [
@@ -35,7 +35,7 @@ class Modelo(models.Model):
     def __str__(self):
         return f"{self.marca.nombre} {self.nombre}"
     
-# Vehiculo =====================================================================================
+# Vehiculo =============================================================
     
 vin_validator = RegexValidator(
     regex=r'^[A-HJ-NPR-Z0-9]{17}$',
@@ -176,7 +176,7 @@ class Vehiculo(models.Model):
         return f"{self.marca} {self.modelo} - {self.patente or self.vin}"
     
 
-#Fotografia =======================================================================================
+#Fotografia =========================================================
 
 def validate_file_size(value):
     limit = 5 * 1024 * 1024  # 5 MB
@@ -242,7 +242,7 @@ class Fotografia_Vehiculo(models.Model):
         return f"Foto de {self.vehiculo} - Orden {self.orden}"
     
 
- # Taller =====================================================================
+ # Taller ===========================================================
 
 class Taller(models.Model):
     nombre = models.CharField(max_length=100)
@@ -257,7 +257,7 @@ class Taller(models.Model):
         return self.nombre
     
 
-# VehiculoUsado =====================================================================
+# VehiculoUsado =======================================================
 
 class VehiculoUsado(models.Model):
     ESTADO_COMPONENTE_CHOICES = [
@@ -336,7 +336,7 @@ class VehiculoUsado(models.Model):
         return f"Usado: {self.vehiculo}"
 
 
-# TrasladoVehiculo ==================================================================
+# TrasladoVehiculo =====================================================
 
 class TrasladoVehiculo(models.Model):
     ESTADO_CHOICES = [

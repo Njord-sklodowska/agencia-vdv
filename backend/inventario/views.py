@@ -3,10 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, VehiculoUsado, TrasladoVehiculo
-from .serializers import (
-    MarcaSerializer, ModeloSerializer, VehiculoSerializer,
-    FotografiaVehiculoSerializer, TallerSerializer,
-    VehiculoUsadoSerializer, TrasladoVehiculoSerializer
+from .serializers import ( MarcaSerializer, ModeloSerializer, VehiculoSerializer, FotografiaVehiculoSerializer, TallerSerializer, VehiculoUsadoSerializer, TrasladoVehiculoSerializer
 )
 
 class MarcaViewSet(viewsets.ModelViewSet):
@@ -20,7 +17,7 @@ class ModeloViewSet(viewsets.ModelViewSet):
     queryset = Modelo.objects.all()
     serializer_class = ModeloSerializer
     permission_classes = [IsAuthenticated]
-    # solo superadministrador y administrativo pueden crear/editar/eliminar
+    # solo superadministrador y administra|tivo pueden crear/editar/eliminar
 
 
 class VehiculoViewSet(viewsets.ModelViewSet):
@@ -72,12 +69,12 @@ class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = FotografiaVehiculoSerializer
     permission_classes = [IsAuthenticated]
     # solo administrativo y superiores pueden cargar fotos
-
+    
     def get_queryset(self):
         return Fotografia_Vehiculo.objects.filter(vehiculo_id=self.kwargs['vehiculo_pk'])
 
     def perform_create(self, serializer):
-        vehiculo = Vehiculo.all_objects.get(pk=self.kwargs['vehiculo_pk'])
+        vehiculo = Vehiculo.objects.get(pk=self.kwargs['vehiculo_pk'])
         serializer.save(vehiculo=vehiculo)
 
 
@@ -93,6 +90,11 @@ class VehiculoUsadoViewSet(viewsets.ModelViewSet):
     serializer_class = VehiculoUsadoSerializer
     permission_classes = [IsAuthenticated]
     # autorización solo por superadministrador
+    def get_queryset(self):
+        vehiculo_id = self.request.query_params.get('vehiculo')
+        if vehiculo_id:
+            return VehiculoUsado.objects.filter(vehiculo_id=vehiculo_id)
+        return VehiculoUsado.objects.all()
 
 
 class TrasladoVehiculoViewSet(viewsets.ModelViewSet):

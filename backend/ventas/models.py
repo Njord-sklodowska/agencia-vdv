@@ -147,8 +147,7 @@ class FormaPago(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=models.Q(monto__gt=0), name='check_monto_forma_pago_positivo')
-        ]
+       models.CheckConstraint(condition=models.Q(monto__gt=0), name='check_monto_forma_pago_positivo')]
 
     def clean(self):
         if self.tipo_pago == 'dolares' and not self.cotizacion_dolar:
@@ -209,7 +208,7 @@ class Anticipo(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=models.Q(monto__gt=0), name='check_monto_anticipo_positivo')
+            models.CheckConstraint(condition=models.Q(monto__gt=0), name='check_monto_anticipo_positivo')
         ]
 
     def clean(self):
@@ -240,8 +239,6 @@ class Anticipo(models.Model):
     def __str__(self):
         return f"Anticipo ${self.monto} - {self.vehiculo}"
     
-
-
 # ===================== TITULO DE CREDITO =====================
 
 class TituloCredito(models.Model):
@@ -313,7 +310,7 @@ class TituloCredito(models.Model):
                 name='unique_numero_banco_emisor'
             ),
             models.CheckConstraint(
-                check=models.Q(monto__gt=0),
+                condition=models.Q(monto__gt=0),
                 name='check_monto_titulo_positivo'
             ),
         ]
@@ -411,7 +408,7 @@ class RegistroCobro(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=models.Q(monto_pagado__gt=0),
+                condition=models.Q(monto_pagado__gt=0),
                 name='check_monto_pagado_positivo'
             ),
         ]
