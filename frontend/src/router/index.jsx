@@ -5,12 +5,13 @@ import InventarioPage from '../features/inventario/pages/InventarioPage';
 import VehiculosForm from '../features/inventario/components/VehiculosForm';
 import ClientesPage from '../features/clientes/pages/ClientesPage';
 import ClientesForm from '../features/clientes/components/ClientesForm'; 
+import Login from '../pages/auth/Login'; // Asegúrate que esta ruta sea correcta
 
 export const router = createBrowserRouter([
   {
     // --- 1. RUTAS PÚBLICAS ---
     path: '/login',
-    element: <AuthLayout />
+    element: <Login /> // Cambiamos AuthLayout por tu nuevo componente
   },
   {
     // --- 2. RUTAS PRIVADAS (El sistema por dentro) ---
