@@ -1,3 +1,6 @@
+
+# inventario/views.py
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,32 +17,22 @@ from .serializers import (
 )
 from config.pagination import StandardResultsSetPagination
 from config.mixins import AuditMixin
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/feature/frontend-pardinho10
 
 class MarcaViewSet(viewsets.ModelViewSet):
     queryset = Marca.objects.all()
     serializer_class = MarcaSerializer
     permission_classes = [IsAuthenticated]
-    # solo superadministrador y administrativo pueden crear/editar/eliminar
+    # TODO: solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
 class ModeloViewSet(viewsets.ModelViewSet):
     queryset = Modelo.objects.all()
     serializer_class = ModeloSerializer
     permission_classes = [IsAuthenticated]
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # solo superadministrador y administrativo pueden crear/editar/eliminar
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['marca']
     # TODO: solo superadministrador y administrativo pueden crear/editar/eliminar
->>>>>>> origin/feature/frontend-pardinho10
 
 
 class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
@@ -55,16 +48,6 @@ class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering_fields = ['full_description', 'precio', 'anio', 'kilometraje', 'fecha_alta', 'vin', 'patente', 'marca_nombre', 'modelo_nombre']
 
     def get_queryset(self):
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # cuando Sergio tenga roles, filtrar por sucursal del usuario
-        # si es superadministrador devuelve todos
-        # si es otro rol devuelve solo los de su sucursal:
-        # return Vehiculo.objects.filter(sucursal=self.request.user.sucursal)
-        return Vehiculo.objects.all()
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
         # Anotamos el campo full_description combinando Marca y Modelo para búsqueda y ordenamiento unificado
         # También anotamos marca_nombre y modelo_nombre para permitir el ordenamiento alfabético directo
         return Vehiculo.objects.annotate(
@@ -72,22 +55,12 @@ class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
             marca_nombre=F('marca__nombre'),
             modelo_nombre=F('modelo__nombre')
         ).all()
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10
 
     def perform_create(self, serializer):
-        # asignar sucursal del usuario automáticamente
+        # TODO: asignar sucursal del usuario automáticamente
         # serializer.save(sucursal=self.request.user.sucursal)
         serializer.save()
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # soft delete
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
     # Acción para obtener estadísticas del dashboard
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
@@ -110,10 +83,6 @@ class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
 
     # Acción para soft delete
 
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10
     @action(detail=True, methods=['post'])
     def desactivar(self, request, pk=None):
         vehiculo = self.get_object()
@@ -123,7 +92,7 @@ class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    # confirmar entrega
+    # Acción para confirmar entrega
     @action(detail=True, methods=['post'])
     def entregar(self, request, pk=None):
         vehiculo = self.get_object()
@@ -145,13 +114,13 @@ class VehiculoViewSet(AuditMixin, viewsets.ModelViewSet):
 class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = FotografiaVehiculoSerializer
     permission_classes = [IsAuthenticated]
-    # solo administrativo y superiores pueden cargar fotos
+    # TODO: solo administrativo y superiores pueden cargar fotos
 
     def get_queryset(self):
         return Fotografia_Vehiculo.objects.filter(vehiculo_id=self.kwargs['vehiculo_pk'])
 
     def perform_create(self, serializer):
-        vehiculo = Vehiculo.all_objects.get(pk=self.kwargs['vehiculo_pk'])
+        vehiculo = Vehiculo.objects.get(pk=self.kwargs['vehiculo_pk'])
         serializer.save(vehiculo=vehiculo)
 
     @action(detail=True, methods=['post'])
@@ -174,12 +143,6 @@ class TallerViewSet(AuditMixin, viewsets.ModelViewSet):
     queryset = Taller.objects.all()
     serializer_class = TallerSerializer
     permission_classes = [IsAuthenticated]
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # solo administrativo y superiores pueden crear/editar
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ['estado']
@@ -197,22 +160,12 @@ class TallerViewSet(AuditMixin, viewsets.ModelViewSet):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({'detail': 'Taller desactivado correctamente.'}, status=status.HTTP_200_OK)
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10
 
 
 class VehiculoUsadoViewSet(viewsets.ModelViewSet):
     queryset = VehiculoUsado.objects.all()
     serializer_class = VehiculoUsadoSerializer
     permission_classes = [IsAuthenticated]
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # autorización solo por superadministrador
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ['taller', 'usuario_autoriza']
@@ -224,10 +177,6 @@ class VehiculoUsadoViewSet(viewsets.ModelViewSet):
             marca_nombre=F('vehiculo__marca__nombre'),
             modelo_nombre=F('vehiculo__modelo__nombre')
         ).all()
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10
 
 
 class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
@@ -240,22 +189,11 @@ class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
     ordering_fields = ['fecha_traslado', 'estado', 'costo_traslado']
 
     def get_queryset(self):
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # filtrar por sucursal del usuario
-        return TrasladoVehiculo.objects.all()
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
         return TrasladoVehiculo.objects.annotate(
             vehiculo_detalle=F('vehiculo__patente'),
             origen_nombre=F('sucursal_origen__nombre'),
             destino_nombre=F('sucursal_destino__nombre')
         ).all()
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10
 
     # Acción para confirmar traslado
     @action(detail=True, methods=['post'])

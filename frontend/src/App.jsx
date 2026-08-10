@@ -1,18 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { RouterProvider } from 'react-router-dom';
-import { router } from './router/index';
-
-function App() {
-  return (
-    <RouterProvider router={router} />
-  );
-}
-
-export default App;
-=======
-=======
->>>>>>> origin/feature/frontend-pardinho10
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -132,7 +117,3 @@ function App() {
 }
 
 export default App;
-<<<<<<< HEAD
->>>>>>> origin/feature/frontend-pardinho10
-=======
->>>>>>> origin/feature/frontend-pardinho10

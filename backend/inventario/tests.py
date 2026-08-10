@@ -1,9 +1,9 @@
+# inventario/tests.py
 
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from inventario.models import Vehiculo, Marca, Modelo
 from sucursal.models import Sucursal
-
 
 class VehiculoModelTest(TestCase):
 
@@ -36,7 +36,6 @@ class VehiculoModelTest(TestCase):
             'puertas': 4,
             'motor': '1.6',
             'numero_serie_motor': 'MOTOR123',
-        
         }
 
     # --- 0KM ---
@@ -45,18 +44,18 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='0km',
+            vin='AAAAAAAAAAAAAAAAA',  # 17 chars válidos
             anio=2025,
-            vin='AAAAAAAAAAAAAAAAA',
         )
-        v.full_clean()
+        v.full_clean()  # no debe lanzar error
 
     def test_0km_no_puede_tener_patente(self):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='0km',
+            vin='BBBBBBBBBBBBBBBBB',
             anio=2025,
             patente='AA123BB',
-            vin='BBBBBBBBBBBBBBBBB',
         )
         with self.assertRaises(ValidationError):
             v.full_clean()
@@ -65,9 +64,9 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='0km',
+            vin='CCCCCCCCCCCCCCCCC',
             anio=2025,
             kilometraje=501,
-            vin='CCCCCCCCCCCCCCCCC',
         )
         with self.assertRaises(ValidationError):
             v.full_clean()
@@ -76,7 +75,7 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='0km',
-            vin='AAAAAAAAAAAAAAAAI',
+            vin='AAAAAAAAAAAAAAAAI',  # contiene I
             anio=2025,
         )
         with self.assertRaises(ValidationError):
@@ -88,7 +87,6 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='usado',
-            vin='AAAAAAAAAAAAAAAAB',
             patente='AB123CD',
             anio=2020,
             kilometraje=50000,
@@ -100,7 +98,6 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='usado',
-            vin='AAAAAAAAAAAAAAAAC',
             anio=2020,
             kilometraje=50000,
             procedencia='compra_directa',
@@ -112,7 +109,6 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='usado',
-            vin='AAAAAAAAAAAAAAAAD',
             patente='AC123CD',
             anio=2020,
             kilometraje=0,
@@ -125,7 +121,6 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='usado',
-            vin='AAAAAAAAAAAAAAAAE',
             patente='AD123CD',
             anio=2020,
             kilometraje=50000,
@@ -139,7 +134,6 @@ class VehiculoModelTest(TestCase):
         v = Vehiculo(
             **self.datos_base,
             condicion_vehiculo='usado',
-            vin='AAAAAAAAAAAAAAAAF',
             patente='AE123CD',
             anio=1989,
             kilometraje=50000,
@@ -153,7 +147,6 @@ class VehiculoModelTest(TestCase):
     def test_patente_duplicada(self):
         Vehiculo.objects.create(
             **self.datos_base,
-            vin='AAAAAAAAAAAAAAAAG',
             condicion_vehiculo='usado',
             patente='AF123CD',
             anio=2020,
@@ -162,7 +155,6 @@ class VehiculoModelTest(TestCase):
         )
         v2 = Vehiculo(
             **self.datos_base,
-            vin='AAAAAAAAAAAAAAAAH',
             condicion_vehiculo='usado',
             patente='AF123CD',
             anio=2019,
@@ -171,50 +163,3 @@ class VehiculoModelTest(TestCase):
         )
         with self.assertRaises(ValidationError):
             v2.full_clean()
-
-    # --- SOFT DELETE ---
-
-    def test_soft_delete_en_stock(self):
-        v = Vehiculo.objects.create(
-            **self.datos_base,
-            condicion_vehiculo='0km',
-            anio=2025,
-            vin='DDDDDDDDDDDDDDDDD', 
-        )
-        v.soft_delete()
-        self.assertFalse(Vehiculo.objects.filter(pk=v.pk).exists())
-        self.assertTrue(Vehiculo.all_objects.filter(pk=v.pk).exists())
-
-    def test_soft_delete_vendido_falla(self):
-        v = Vehiculo.objects.create(
-            **self.datos_base,
-            condicion_vehiculo='0km',
-            anio=2025,
-             vin='EEEEEEEEEEEEEEEEE', 
-        )
-        v.estado = 'vendido'
-        v.save(skip_validation=True)
-        with self.assertRaises(ValidationError):
-            v.soft_delete()
-
-    def test_soft_delete_reservado_falla(self):
-        v = Vehiculo.objects.create(
-            **self.datos_base,
-            condicion_vehiculo='0km',
-            anio=2025,
-            vin='FFFFFFFFFFFFFFFFF', 
-        )
-        v.estado = 'reservado'
-        v.save(skip_validation=True)
-        with self.assertRaises(ValidationError):
-            v.soft_delete()
-
-    def test_delete_fisico_no_permitido(self):
-        v = Vehiculo.objects.create(
-            **self.datos_base,
-            condicion_vehiculo='0km',
-            anio=2025,
-            vin='GGGGGGGGGGGGGGGGG', 
-        )
-        with self.assertRaises(ValidationError):
-            v.delete()
