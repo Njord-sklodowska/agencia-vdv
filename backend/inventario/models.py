@@ -237,6 +237,20 @@ class Taller(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        """Validaciones del modelo"""
+        if self.telefono:
+            limpio = self.telefono.replace('-', '').replace('.', '').replace(' ', '')
+            if not limpio.isdigit():
+                raise ValidationError({'telefono': 'El teléfono solo debe contener números.'})
+            if len(limpio) not in [10, 11]:
+                raise ValidationError({'telefono': f'El teléfono debe tener 10 u 11 dígitos. Tiene {len(limpio)}.'})
+            self.telefono = limpio
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nombre
 

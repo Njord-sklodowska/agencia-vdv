@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # Python
 __pycache__/
@@ -12,13 +13,98 @@ modelos_recuperados.py
 db.sqlite3
 *.log
 media/
+=======
+# ==============================================================================
+# Global .gitignore for Agencia VDV (Django + React)
+# ==============================================================================
 
-# Node
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+>>>>>>> origin/feature/frontend-pardinho10
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+
+# --- Node.js / React / Vite ---
 node_modules/
 dist/
+dist-ssr/
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
 
-# VSCode
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+# Virtual environments
+.venv/
+
+# Django specific
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+# No ignoramos static/ si contiene archivos fuente, 
+# pero ignoramos la carpeta de salida de collectstatic si se llama static_root
+
+# --- Environment Variables ---
+.env
+.env.*
+!.env.example
+
+# --- Logs & Database ---
+*.log
+*.sql
+*.dump
+
+# --- Documentación personal / ayudas ---
+# Ignorar toda la documentación .md (excepto README)
+*.md
+!README.md
+
+# Excepto los que están en docs/
+docs/
+
+# Mantener compatibilidad con archivos existentes
+FUSION_CLIENTES.md
+PROYECTO_ANALISIS.md
+ROADMAP.md
+GIT_DJANGO_UPDATE.md
+DOCUMENTACION_AUDITORIA.md
+pendientes.md
+frontend_concesionaria.md
+CONSULTAS_CONCEPTOS.md
+
+# --- Build frontend ---
+frontend/dist/
+
+# --- Others ---
+.git-rewrite
+.idea/
 .vscode/
+<<<<<<< HEAD
 
 # OS
 .DS_Store
@@ -37,3 +123,5 @@ backend/sucursales/
 
 inventario/fixtures/
 inventario/management
+=======
+>>>>>>> origin/feature/frontend-pardinho10
