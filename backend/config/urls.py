@@ -19,7 +19,7 @@ urlpatterns = [
     path('api/parametro_sistema/', include('parametro_sistema.urls')),
     path('api/clientes/', include('clientes.urls')),
     path('api/auditoria/', include('auditoria.urls')),
-    path('api/ventas/', include('ventas.urls')),
+    #path('api/ventas/', include('ventas.urls')),
 
     # JWT AUTH
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

@@ -9,30 +9,27 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
+    'sucursal',
+    'usuario',
+    'clientes',
+    'inventario',
+    'auditoria',
+
+    'rest_framework',
+    'corsheaders',
+    'parametro_sistema',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'sucursal',
-    'usuario',
-    'clientes',
-    'inventario',
-    'ventas',
-    'auditoria',
-    'rest_framework',
-    'corsheaders',
-    'parametro_sistema',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication', 
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 
@@ -73,9 +70,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agencia_vdv',
         'USER': 'root',
-        'PASSWORD': 'nueva_contraseña',        # contraseña local
+        'PASSWORD': 'agencia123654',
         'HOST': '127.0.0.1',
-        'PORT': '3307',
+        'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
@@ -93,5 +90,3 @@ STATIC_URL = 'static/'
 import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -8,7 +8,6 @@ from sucursal.models import Sucursal
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 
-
 # Marca =============================================================================
 class Marca(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -43,11 +42,6 @@ vin_validator = RegexValidator(
     code='invalid_vin'
 )
 
-patente_validator = RegexValidator(
-        regex=r'^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$',
-        message='Formato de patente inválido. Use ABC123 (formato viejo) o AB123CD (formato Mercosur).'
-    )
-
 class Vehiculo(models.Model):
     # Enums
     CONDICION_CHOICES = [('0km', '0km'), ('usado', 'Usado')]
@@ -68,9 +62,15 @@ class Vehiculo(models.Model):
     vin = models.CharField(max_length=17,unique=True,null=True, blank=False, validators=[vin_validator],help_text="Ingrese el número de chasis (VIN) de 17 caracteres."
     )
 
-    patente = models.CharField(max_length=10, null=True, blank=True, validators=[patente_validator]
-    )
-    
+    patente = models.CharField(max_length=10, null=True, blank=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['patente'], 
+                name='unique_patente_no_nula', 
+                condition=models.Q(patente__isnull=False)
+            )
+        ]
     anio = models.SmallIntegerField(validators=[MinValueValidator(1990), MaxValueValidator(datetime.date.today().year + 1)])
     color = models.CharField(max_length=50)
     precio_costo = models.DecimalField(max_digits=12, decimal_places=2) # Lógica de visibilidad en Serializer
@@ -80,6 +80,7 @@ class Vehiculo(models.Model):
     kilometraje = models.IntegerField(default=0)
     activo = models.BooleanField(default=True)
     entregado = models.BooleanField(default=False)
+
 
     # Fechas
     fecha_alta = models.DateTimeField(auto_now_add=True)
@@ -91,6 +92,7 @@ class Vehiculo(models.Model):
     puertas = models.SmallIntegerField(choices=[(2,2), (3,3), (4,4), (5,5)])
     motor = models.CharField(max_length=50)
     traccion = models.CharField(max_length=15, choices=TRACCION_CHOICES, null=True, blank=True)
+    
     numero_serie_motor = models.CharField(max_length=100)
     procedencia = models.CharField(max_length=20, choices=PROCEDENCIA_CHOICES, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -118,21 +120,18 @@ class Vehiculo(models.Model):
             
             if not self.procedencia:
                 raise ValidationError({"procedencia": "La procedencia es obligatoria para usados."})
-            
-        if not self.numero_serie_motor:
-            raise ValidationError({"numero_serie_motor": "El número de serie del motor es obligatorio."})
+            if not self.numero_serie_motor:
+                raise ValidationError({"numero_serie_motor": "El número de serie del motor es obligatorio."})
         
         #  Validación para 0KM
         if self.condicion_vehiculo == '0km':
-            if self.patente and self.estado in ['en_stock', 'reservado']:
-                raise ValidationError({"patente": "Un vehículo 0km no puede tener patente mientras está en stock o reservado. La patente se asigna recién al confirmarse la venta."})
+            if self.patente and self.estado != 'vendido':
+                raise ValidationError({"patente": "Un vehículo 0km no debe tener patente asignada."})
            
             if (self.kilometraje or 0) > 500:
                 raise ValidationError({"kilometraje": "Un vehículo 0km no puede tener más de 500 km."})
         
         if self.entregado:
-            if self.estado != 'vendido':
-                raise ValidationError({'entregado': 'Solo se puede marcar como entregado un vehículo en estado vendido.'})
             if self.condicion_vehiculo == '0km' and not self.patente:
                 raise ValidationError({'patente': 'Para marcar como entregado un 0km debe tener patente asignada.'})
     
@@ -143,7 +142,7 @@ class Vehiculo(models.Model):
         if not self.pk:
             self.fecha_cambio_estado = timezone.now()
         else:
-            original = Vehiculo.all_objects.filter(pk=self.pk).first()
+            original = Vehiculo.objects.filter(pk=self.pk).first()
             if original and original.estado != self.estado:
                 self.fecha_cambio_estado = timezone.now()
         
@@ -273,6 +272,10 @@ class VehiculoUsado(models.Model):
         null=True, blank=True, related_name='evaluaciones'
     )
     
+    #operacion_origen = models.ForeignKey(
+        #'ventas.OperacionVenta', on_delete=models.SET_NULL,
+        #null=True, blank=True, related_name='vehiculos_recibidos')
+
     usuario_autoriza = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='vehiculos_autorizados'
@@ -311,13 +314,10 @@ class VehiculoUsado(models.Model):
             raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser anterior a 30 días.'})
 
         if self.fecha_evaluacion:
-
             if self.fecha_evaluacion > hoy:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser futura.'})
-            
-            if self.fecha_ingreso and self.fecha_ingreso > hoy:
-                raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser futura.'})
-            
+            if (hoy - self.fecha_evaluacion).days > 30:
+                raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser anterior a 30 días.'})
             if self.fecha_ingreso and self.fecha_evaluacion > self.fecha_ingreso:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'})
 
@@ -368,13 +368,9 @@ class TrasladoVehiculo(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
-        if not self.pk and self.vehiculo_id:
-            if self.vehiculo.estado == 'vendido':
-                raise ValidationError({'vehiculo': 'No se puede trasladar un vehículo vendido.'})
-            if self.sucursal_origen_id and self.vehiculo.sucursal_id != self.sucursal_origen_id:
-                raise ValidationError({'sucursal_origen': 'La sucursal origen no coincide con la sucursal actual del vehículo.'})
+        if not self.pk and self.vehiculo_id and self.vehiculo.estado == 'vendido':
+            raise ValidationError({'vehiculo': 'No se puede trasladar un vehículo vendido.'})
             
-    
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
