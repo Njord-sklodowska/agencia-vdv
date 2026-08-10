@@ -1,10 +1,11 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import LogAuditoriaViewSet
+from django.urls import path
 
-router = DefaultRouter()
-router.register(r'logs', LogAuditoriaViewSet, basename='log-auditoria')
+from .views import LogAuditoriaListView
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path(
+        '',
+        LogAuditoriaListView.as_view(),
+        name='auditoria-list'
+    ),
 ]

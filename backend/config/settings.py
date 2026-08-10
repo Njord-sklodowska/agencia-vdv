@@ -1,42 +1,39 @@
 from pathlib import Path
-import os
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+SECRET_KEY = 'django-insecure-demo-key'
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-demo-key')
+DEBUG = True
 
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
-
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
+ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    'sucursal',
-    'usuario',
-    'clientes',
-    'inventario',
-    'auditoria',
-
-    'rest_framework',
-    'drf_spectacular',
-    'corsheaders',
-    'parametro_sistema',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'sucursal',
+    'usuario',
+    'clientes',
+    'inventario',
+    'ventas',
+    'auditoria',
+    'rest_framework',
+    'corsheaders',
+    'parametro_sistema',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication', 
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 AUTH_USER_MODEL = 'usuario.Usuario'
@@ -50,16 +47,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "authorization",
-    "content-type",
-    "user-agent",
-    "x-requested-with",
-    "x-sucursal-id",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -84,11 +71,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'agencia_vdv'),
-        'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'agencia123654'),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'NAME': 'agencia_vdv',
+        'USER': 'root',
+        'PASSWORD': 'nueva_contraseña',        # contraseña local
+        'HOST': '127.0.0.1',
+        'PORT': '3307',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
@@ -103,5 +90,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

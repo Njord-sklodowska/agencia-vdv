@@ -57,9 +57,16 @@ class OperacionVenta(models.Model):
         if self.estado == 'cancelada' and not self.observaciones:
             raise ValidationError({'observaciones': 'Debe indicar el motivo de la cancelación.'})
 
+        if original and original.observaciones:
+            if not (self.observaciones or '').startswith(original.observaciones):
+                raise ValidationError({
+                    'observaciones': 'No se puede modificar ni eliminar el texto de observaciones ya registrado. Solo se puede agregar texto al final.'
+                })
+            
         if original and original.estado != 'borrador':
             if self.precio_original != original.precio_original:
                 raise ValidationError({'precio_original': 'No se puede modificar el precio una vez confirmada la operación.'})
+        
 
         if original and original.estado == 'borrador' and self.estado == 'confirmada':
             raise ValidationError({'estado': 'No se puede confirmar una operación directamente. Use la acción confirmar.'})
@@ -116,21 +123,6 @@ class OperacionVenta(models.Model):
         
         super().save(*args, **kwargs)
             
-    """def save(self, *args, **kwargs):
-        skip_validation = kwargs.pop('skip_validation', False)
-        
-        if self.vehiculo_vendido:
-            self.precio_original = self.vehiculo_vendido.precio
-        if self.vehiculo_usado_entregado:
-            self.valor_vehiculo_usado = self.vehiculo_usado_entregado.precio_costo
-
-        self.precio_final = (self.precio_original or 0) - (self.descuento_aplicado or 0) - (self.valor_vehiculo_usado or 0)
-
-        if not skip_validation:
-            self.full_clean(exclude=['precio_final'])
-        
-        super().save(*args, **kwargs)"""
-
 
     def __str__(self):
         return f"Op {self.id} - Vehículo: {self.vehiculo_vendido.patente or self.vehiculo_vendido.vin}"

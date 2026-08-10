@@ -1,9 +1,8 @@
 from rest_framework import serializers
-from config.serializers import ValidatedModelSerializer
 from .models import Usuario
 
 
-class UsuarioSerializer(ValidatedModelSerializer):
+class UsuarioSerializer(serializers.ModelSerializer):
 
     rol_nombre = serializers.SerializerMethodField()
     sucursal_nombre = serializers.SerializerMethodField()

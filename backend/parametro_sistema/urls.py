@@ -3,9 +3,9 @@ from .views import ParametroSistemaViewSet
 
 router = DefaultRouter()
 router.register(
-    r'parametros',
+    r'parametros-sistema',
     ParametroSistemaViewSet,
-    basename='parametros'
+    basename='parametros-sistema'
 )
 
 urlpatterns = router.urls

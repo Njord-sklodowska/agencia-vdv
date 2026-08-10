@@ -52,7 +52,7 @@ class VehiculoAdmin(admin.ModelAdmin):
     )
     
     inlines = [FotografiaInline]
-    list_display = ('marca', 'modelo', 'patente', 'estado', 'entregado', 'precio', 'activo')
+    list_display = ('id', 'marca', 'modelo', 'patente', 'estado','vin', 'precio_costo', 'precio', 'entregado', 'activo')
     list_filter = ('estado', 'entregado', 'activo' , 'condicion_vehiculo', 'marca')
     search_fields = ('patente', 'vin')
 
@@ -114,7 +114,7 @@ class TallerAdmin(admin.ModelAdmin):
 
 @admin.register(VehiculoUsado)
 class VehiculoUsadoAdmin(admin.ModelAdmin):
-    list_display = ('vehiculo', 'taller', 'precio_tasacion_final', 'fecha_ingreso')
+    list_display = ('id', 'vehiculo', 'taller', 'precio_tasacion_final', 'fecha_ingreso')
     list_filter = ('taller',)
     search_fields = ('vehiculo__patente',)
     readonly_fields = ('fecha_alta', 'updated_at')
