@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 # Python
 __pycache__/
@@ -25,6 +26,18 @@ Thumbs.db
 *.bak
 >>>>>>> origin/feature/frontend-pardinho10
 
+=======
+# ==============================================================================
+# Global .gitignore for Agencia VDV (Django + React)
+# ==============================================================================
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+
+>>>>>>> origin/feature/frontend-pardinho10
 # --- IDEs & Editors ---
 .vscode/
 .idea/
@@ -105,6 +118,7 @@ frontend/dist/
 .idea/
 .vscode/
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 # OS
 .DS_Store
@@ -123,5 +137,7 @@ backend/sucursales/
 
 inventario/fixtures/
 inventario/management
+=======
+>>>>>>> origin/feature/frontend-pardinho10
 =======
 >>>>>>> origin/feature/frontend-pardinho10

@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,6 +22,8 @@
     "react-router-dom": "^7.15.1",
     "zod": "^4.4.3"
 =======
+=======
+>>>>>>> origin/feature/frontend-pardinho10
     "preview": "vite preview",
     "backend": "concurrently \"cd ../backend && venv/bin/python manage.py runserver\"",
     "frontend": "npm run dev",
@@ -35,6 +38,9 @@
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.16.0",
     "sweetalert2": "^11.26.25"
+<<<<<<< HEAD
+>>>>>>> origin/feature/frontend-pardinho10
+=======
 >>>>>>> origin/feature/frontend-pardinho10
   },
   "devDependencies": {
@@ -43,6 +49,10 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    "concurrently": "^9.2.1",
+>>>>>>> origin/feature/frontend-pardinho10
 =======
     "concurrently": "^9.2.1",
 >>>>>>> origin/feature/frontend-pardinho10

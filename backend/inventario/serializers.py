@@ -5,7 +5,10 @@ from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, Vehicu
 import datetime 
 from decimal import Decimal
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/feature/frontend-pardinho10
 class MarcaSerializer(ValidatedModelSerializer):
     class Meta:
         model = Marca
@@ -111,6 +114,9 @@ class TallerSerializer(ValidatedModelSerializer):
 
 
 class VehiculoUsadoSerializer(ValidatedModelSerializer):
+<<<<<<< HEAD
+>>>>>>> origin/feature/frontend-pardinho10
+=======
 >>>>>>> origin/feature/frontend-pardinho10
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
     taller_nombre = serializers.CharField(source='taller.nombre', read_only=True)
@@ -205,6 +211,7 @@ class VehiculoUsadoSerializer(ValidatedModelSerializer):
         return data
     
 <<<<<<< HEAD
+<<<<<<< HEAD
 class TallerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Taller
@@ -212,6 +219,9 @@ class TallerSerializer(serializers.ModelSerializer):
         read_only_fields = ['fecha_alta', 'updated_at']
 
 class TrasladoVehiculoSerializer(serializers.ModelSerializer):
+=======
+class TrasladoVehiculoSerializer(ValidatedModelSerializer):
+>>>>>>> origin/feature/frontend-pardinho10
 =======
 class TrasladoVehiculoSerializer(ValidatedModelSerializer):
 >>>>>>> origin/feature/frontend-pardinho10
