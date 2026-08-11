@@ -22,7 +22,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'rol',
             'rol_nombre',
             'sucursal',
-            'sucursal_nombre'
+            'sucursal_nombre',
+            'password',
         ]
         extra_kwargs = {
             'password': {'write_only': True}
