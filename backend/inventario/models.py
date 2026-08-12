@@ -84,6 +84,7 @@ class Vehiculo(models.Model):
     # Fechas
     fecha_alta = models.DateTimeField(auto_now_add=True)
     fecha_cambio_estado = models.DateTimeField(null=True, blank=True)
+    fecha_entrega = models.DateTimeField(null=True, blank=True)
     
     # Especificaciones técnicas de vehiculo
     combustible = models.CharField(max_length=15, choices=COMBUSTIBLE_CHOICES)
