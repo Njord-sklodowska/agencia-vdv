@@ -9,8 +9,8 @@ class Rol(models.Model):
 
 
 ESTADOS = (
-    ('activa', 'Activa'),
-    ('inactiva', 'Inactiva'),
+    ('activo', 'Activo'),
+    ('inactivo', 'Inactivo'),
 )
 
 
@@ -23,7 +23,7 @@ class Usuario(AbstractUser):
         blank=True
 )
 
-    estado = models.CharField(max_length=10, choices=ESTADOS, default='activa')
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='activo')
 
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -40,10 +40,16 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return None
 
     def validate_email(self, value):
-        if Usuario.objects.filter(email=value).exists():
+        queryset = Usuario.objects.filter(email=value)
+
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
             raise serializers.ValidationError(
                 "Ya existe un usuario con este email."
             )
+
         return value
     
     def validate_rol(self, value):
