@@ -1,3 +1,12 @@
+import pymysql
+pymysql.install_as_MySQLdb()
+
+# Parche estricto para MariaDB en Django 5: deshabilita RETURNING
+from django.db.backends.mysql import base, features
+base.DatabaseWrapper.check_database_version_supported = lambda self: None
+features.DatabaseFeatures.can_return_columns_from_insert = False
+features.DatabaseFeatures.can_return_rows_from_bulk_insert = False
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -70,9 +79,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agencia_vdv',
         'USER': 'root',
-        'PASSWORD': 'agencia123654',
+        'PASSWORD': '',
         'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'PORT': '3307',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
@@ -90,3 +99,5 @@ STATIC_URL = 'static/'
 import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
