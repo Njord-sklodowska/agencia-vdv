@@ -12,8 +12,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'username',
-            'first_name',
-            'last_name',
+            'nombre',
+            'apellido',
             'email',
             'is_active',
             'estado',
@@ -30,12 +30,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
         }
 
     def get_rol_nombre(self, obj):
-        if obj.rol:
+        if obj.rol_id:
             return obj.rol.nombre
         return None
 
     def get_sucursal_nombre(self, obj):
-        if obj.sucursal:
+        if obj.sucursal_id:
             return obj.sucursal.nombre
         return None
 
@@ -51,7 +51,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             )
 
         return value
-    
+
     def validate_rol(self, value):
         if not value:
             raise serializers.ValidationError(
