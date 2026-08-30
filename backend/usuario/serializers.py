@@ -12,8 +12,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'username',
-            'first_name',
-            'last_name',
+            'nombre',
+            'apellido',
             'email',
             'is_active',
             'estado',
@@ -30,22 +30,28 @@ class UsuarioSerializer(serializers.ModelSerializer):
         }
 
     def get_rol_nombre(self, obj):
-        if obj.rol:
+        if obj.rol_id:
             return obj.rol.nombre
         return None
 
     def get_sucursal_nombre(self, obj):
-        if obj.sucursal:
+        if obj.sucursal_id:
             return obj.sucursal.nombre
         return None
 
     def validate_email(self, value):
-        if Usuario.objects.filter(email=value).exists():
+        queryset = Usuario.objects.filter(email=value)
+
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
             raise serializers.ValidationError(
                 "Ya existe un usuario con este email."
             )
+
         return value
-    
+
     def validate_rol(self, value):
         if not value:
             raise serializers.ValidationError(
