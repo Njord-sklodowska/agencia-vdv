@@ -7,6 +7,7 @@ import mimetypes
 from sucursal.models import Sucursal
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
+from decimal import Decimal
 
 
 # Marca ================================================================
@@ -97,9 +98,8 @@ class Vehiculo(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def clean(self):
-        # Validación de unicidad de patente 
+        # Validación de patente unica
         if self.patente:
-            # Buscamos otros vehículos con la misma patente, excluyendo el objeto actual (si ya tiene PK)
             queryset = Vehiculo.objects.filter(patente=self.patente)
             if self.pk:
                 queryset = queryset.exclude(pk=self.pk)
@@ -170,7 +170,7 @@ class Vehiculo(models.Model):
         def get_queryset(self):
             return super().get_queryset().filter(activo=True)
 
-    objects = ActiveManager() # por defecto
+    objects = ActiveManager()
     all_objects = models.Manager() # Para acceder a todo (incluyendo los inactivos)
     
     def __str__(self):
@@ -207,7 +207,7 @@ class Fotografia_Vehiculo(models.Model):
             if not self.archivo.name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
                 raise ValidationError({'archivo': 'Solo se permiten formatos JPG, PNG o WEBP.'})
 
-        # Validación de límite de 10 fotos
+        # Validación de límite de fotos
         if self.pk is None and self.vehiculo_id:
             fotos_actuales = Fotografia_Vehiculo.objects.filter(vehiculo=self.vehiculo).count()
             if fotos_actuales >= 10:
@@ -221,10 +221,10 @@ class Fotografia_Vehiculo(models.Model):
         if self.archivo:
             # Calculo tamaño
             self.tamano_bytes = self.archivo.size
-            # Calculo MIME type
+    
             mime, _ = mimetypes.guess_type(self.archivo.name)
             self.mime_type = mime or 'image/jpeg'
-            # nombre original si está vacío
+            # Si esta vacio va el nombre original
             if not self.nombre_original:
                 self.nombre_original = self.archivo.name
 
@@ -235,14 +235,12 @@ class Fotografia_Vehiculo(models.Model):
             )['orden__max'] or 0
             self.orden = max_orden + 1
 
-      
         self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Foto de {self.vehiculo} - Orden {self.orden}"
     
-
  # Taller ===========================================================
 
 class Taller(models.Model):
@@ -282,20 +280,19 @@ class VehiculoUsado(models.Model):
     precio_info_auto = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     porcentaje_deduccion = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     precio_tasacion_final = models.DecimalField(max_digits=14, decimal_places=2)
-
+    #condiciones del vechiulo usado
     estado_cubierta = models.CharField(max_length=10, choices=ESTADO_COMPONENTE_CHOICES, null=True, blank=True)
     estado_motor = models.CharField(max_length=10, choices=ESTADO_COMPONENTE_CHOICES, null=True, blank=True)
     estado_chapa_pintura = models.CharField(max_length=10, choices=ESTADO_COMPONENTE_CHOICES, null=True, blank=True)
     estado_interior = models.CharField(max_length=10, choices=ESTADO_COMPONENTE_CHOICES, null=True, blank=True)
-
-    fecha_evaluacion = models.DateField(null=True, blank=True)
-    fecha_ingreso = models.DateField()
     observaciones = models.TextField(blank=True)
 
+    #fechas
+    fecha_evaluacion = models.DateField(null=True, blank=True)
+    fecha_ingreso = models.DateField()
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    
+  
 
     def clean(self):
         if self.vehiculo_id and self.vehiculo.condicion_vehiculo != 'usado':
@@ -303,39 +300,40 @@ class VehiculoUsado(models.Model):
         
         if self.precio_tasacion_final is not None and self.precio_tasacion_final <= 0:
             raise ValidationError({'precio_tasacion_final': 'El precio de tasación debe ser mayor a cero.'})
-        
         hoy = datetime.date.today()
 
         if self.fecha_ingreso and self.fecha_ingreso > hoy:
             raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser futura.'})
+        
         if self.fecha_ingreso and (hoy - self.fecha_ingreso).days > 30:
             raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser anterior a 30 días.'})
 
         if self.fecha_evaluacion:
-
             if self.fecha_evaluacion > hoy:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser futura.'})
-            
             if self.fecha_ingreso and self.fecha_ingreso > hoy:
                 raise ValidationError({'fecha_ingreso': 'La fecha de ingreso no puede ser futura.'})
-            
             if self.fecha_ingreso and self.fecha_evaluacion > self.fecha_ingreso:
                 raise ValidationError({'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'})
 
 
     def save(self, *args, **kwargs):
+        # Calcula y fuerza el redondeo a 2 decimales antes de guardar y validar
+        if self.precio_info_auto is not None and self.porcentaje_deduccion is not None:
+            calculado = Decimal(str(self.precio_info_auto)) - (Decimal(str(self.precio_info_auto)) * Decimal(str(self.porcentaje_deduccion)) / Decimal('100'))
+            self.precio_tasacion_final = calculado.quantize(Decimal('0.01'))
+
         is_new = self.pk is None
         self.full_clean()
         super().save(*args, **kwargs)
-        # Actualiza precio_costo en Vehiculo solo al crear
-        if is_new:
-            Vehiculo.all_objects.filter(pk=self.vehiculo_id).update(
-                precio_costo=self.precio_tasacion_final
-            )
+        
+        # Actualiza precio_costo en Vehiculo
+        Vehiculo.all_objects.filter(pk=self.vehiculo_id).update(
+            precio_costo=self.precio_tasacion_final
+        )
 
     def __str__(self):
         return f"Usado: {self.vehiculo}"
-
 
 # TrasladoVehiculo =====================================================
 
@@ -368,6 +366,8 @@ class TrasladoVehiculo(models.Model):
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    #validaciones
+    
     def clean(self):
         if not self.pk and self.vehiculo_id:
             if self.vehiculo.estado == 'vendido':

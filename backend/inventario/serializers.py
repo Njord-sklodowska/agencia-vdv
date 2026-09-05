@@ -4,7 +4,6 @@ from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, Vehicu
 import datetime 
 from decimal import Decimal
 
-
 class MarcaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Marca
@@ -33,6 +32,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
     modelo_nombre = serializers.CharField(source='modelo.nombre', read_only=True)
     sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
     fotos = FotografiaVehiculoSerializer(many=True, read_only=True)
+    confirmar_precio_bajo_costo = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Vehiculo
@@ -48,26 +48,33 @@ class VehiculoSerializer(serializers.ModelSerializer):
             'combustible', 'transmision', 'puertas', 'motor', 'traccion',
             'numero_serie_motor', 'procedencia',
             'fecha_alta', 'fecha_cambio_estado', 'updated_at',
-            'fotos',
+            'fotos','confirmar_precio_bajo_costo',
         ]
         read_only_fields = ['fecha_alta', 'fecha_cambio_estado', 'updated_at']
 
-    
     def validate(self, data):
         from django.core.exceptions import ValidationError
         errores = {}
         
-        precio = data.get('precio')
-        precio_costo = data.get('precio_costo')
-        
-        if precio and precio_costo and precio < precio_costo:
-            errores['precio'] = 'El precio de venta no puede ser inferior al costo.'
+        precio = data.get('precio', self.instance.precio if self.instance else None)
+        precio_costo = data.get('precio_costo', self.instance.precio_costo if self.instance else None)
+        confirmar = data.pop('confirmar_precio_bajo_costo', False)
+# validacion precios
+        if precio and precio_costo and precio < precio_costo and not confirmar:
+            raise serializers.ValidationError({
+                'advertencia': (
+                    f'El precio de venta (${precio}) es inferior al costo registrado (${precio_costo}). '
+                    f'Si desea guardarlo de todas formas, envíe confirmar_precio_bajo_costo: true.'
+                )
+            })
         
         if not data.get('numero_serie_motor', '').strip():
             errores['numero_serie_motor'] = 'El número de serie del motor es obligatorio.'
 
+#validaciones de acuerdo a la condicion del vehiculo
+
         condicion = data.get('condicion_vehiculo')
-        
+
         if condicion == 'usado':
             if not data.get('patente'):
                 errores['patente'] = 'La patente es obligatoria para vehículos usados.'
@@ -86,13 +93,11 @@ class VehiculoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errores)
 
         if self.instance:
-            # Update (PATCH/PUT): partimos de los datos reales del vehiculo y solo pisamos los campos que vinieron en este request.
             datos_completos = {**self.instance.__dict__, **data}
             datos_completos.pop('_state', None)
             instance = Vehiculo(**datos_completos)
             instance.pk = self.instance.pk
         else:
-            # Create: no hay datos previos, se construye desde cero.
             instance = Vehiculo(**data)
         try:
             instance.clean()
@@ -100,23 +105,29 @@ class VehiculoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(e.message_dict)
 
         return data
+    
+    def to_representation(self, instance): # Agrega una advertencia visible en la respuesta si el precio de venta quedó por debajo del costo. No bloquea nada, solo informa - el bloqueo real está en validate().
+        data = super().to_representation(instance)
+        data = super().to_representation(instance)
+        if instance.precio and instance.precio_costo and instance.precio < instance.precio_costo:
+            data['advertencias'] = ['El precio de venta es inferior al costo registrado.']
+        return data
 
 class VehiculoUsadoSerializer(serializers.ModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo.__str__', read_only=True)
     taller_nombre = serializers.CharField(source='taller.nombre', read_only=True)
     usuario_autoriza_nombre = serializers.CharField(source='usuario_autoriza.get_full_name', read_only=True)
-
+    precio_tasacion_final = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
+    
     class Meta:
         model = VehiculoUsado
         fields = [
             'id',
-            'vehiculo', 'vehiculo_detalle',
-            'taller', 'taller_nombre',
+            'vehiculo', 'vehiculo_detalle','taller', 'taller_nombre',
             'usuario_autoriza', 'usuario_autoriza_nombre',
             'precio_info_auto', 'porcentaje_deduccion', 'precio_tasacion_final',
             'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior',
-            'fecha_evaluacion', 'fecha_ingreso', 'observaciones',
-            'fecha_alta', 'updated_at',
+            'fecha_evaluacion', 'fecha_ingreso', 'observaciones','fecha_alta', 'updated_at',
         ]
         read_only_fields = ['fecha_alta', 'updated_at']
 
@@ -149,7 +160,7 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         taller = self.initial_data.get('taller')
         precio_info_auto = self.initial_data.get('precio_info_auto')
         porcentaje = self.initial_data.get('porcentaje_deduccion')
-
+        
         if taller and precio_info_auto and porcentaje:
             try:
                 esperado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))
@@ -164,7 +175,7 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-    # Combinar datos existentes con los nuevos para soportar PATCH parcial
+        # Combinar datos existentes con los nuevos para soportar PATCH parcial
         if self.instance:
             datos_completos = {
                 'vehiculo': data.get('vehiculo', self.instance.vehiculo),
@@ -177,6 +188,7 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
                 'estado_chapa_pintura': data.get('estado_chapa_pintura', self.instance.estado_chapa_pintura),
                 'estado_interior': data.get('estado_interior', self.instance.estado_interior),
                 'fecha_ingreso': data.get('fecha_ingreso', self.instance.fecha_ingreso),
+                'precio_tasacion_final': data.get('precio_tasacion_final', self.instance.precio_tasacion_final),
             }
         else:
             datos_completos = data
@@ -188,18 +200,34 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
             )
 
         taller = datos_completos.get('taller')
-        if not taller:
-            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion']:
-                if datos_completos.get(campo) is not None:
-                    raise serializers.ValidationError(
-                        {campo: 'Este campo debe ser nulo cuando no hay taller asignado.'}
-                    )
+        precio_info_auto = datos_completos.get('precio_info_auto')
+        porcentaje = datos_completos.get('porcentaje_deduccion')
+
+        # Info Auto, independiente del taller -
+        # Si vienen ambos (precio_info_auto y porcentaje), el sistema calcula precio_tasacion_final automáticamente y lo sobreescribe.
+        if precio_info_auto and porcentaje:
+            calculado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))
+            data['precio_tasacion_final'] = calculado.quantize(Decimal('0.01'))
         else:
-            for campo in ['precio_info_auto', 'porcentaje_deduccion', 'fecha_evaluacion',
-                        'estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior']:
+            # Sin Info Auto completo: el precio de tasación debe cargarse a mano.
+            if not datos_completos.get('precio_tasacion_final'):
+                raise serializers.ValidationError(
+                    {'precio_tasacion_final': 'Debe indicar el precio de tasación cuando no se usa Info Auto (precio_info_auto + porcentaje_deduccion).'}
+                )
+
+        # Taller, independiente de Info Auto -
+        # Si hay taller, los campos de inspección técnica son obligatorios.
+        if taller:
+            for campo in ['estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior', 'fecha_evaluacion']:
                 if not datos_completos.get(campo):
                     raise serializers.ValidationError(
                         {campo: 'Este campo es obligatorio cuando hay taller asignado.'}
+                    )
+        else:
+            for campo in ['estado_cubierta', 'estado_motor', 'estado_chapa_pintura', 'estado_interior', 'fecha_evaluacion']:
+                if datos_completos.get(campo):
+                    raise serializers.ValidationError(
+                        {campo: 'Este campo solo aplica cuando hay taller asignado.'}
                     )
 
         fecha_ingreso = datos_completos.get('fecha_ingreso')
@@ -209,6 +237,15 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
                 {'fecha_evaluacion': 'La fecha de evaluación no puede ser posterior a la fecha de ingreso.'}
             )
 
+        return data
+
+    def to_representation(self, instance):  # Agrega una advertencia visible en la respuesta si el precio de venta quedó por debajo del costo. No bloquea nada, solo informa - el bloqueo real está en validate().
+        data = super().to_representation(instance)
+        if instance.vehiculo and instance.precio_tasacion_final and instance.vehiculo.precio:
+            if instance.precio_tasacion_final > instance.vehiculo.precio:
+                data['advertencias'] = [
+                    f'La tasación (${instance.precio_tasacion_final}) es superior al precio de venta actual del vehículo (${instance.vehiculo.precio}).'
+                ]
         return data
     
 class TallerSerializer(serializers.ModelSerializer):

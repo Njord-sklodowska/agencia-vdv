@@ -1,12 +1,10 @@
 
 from rest_framework import serializers
-from .models import OperacionVenta, FormaPago, Anticipo
+from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro
 import datetime
 from django.core.exceptions import ValidationError
 from inventario.models import Vehiculo
 from decimal import Decimal
-
-
 
 class FormaPagoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,7 +39,7 @@ class AnticipoSerializer(serializers.ModelSerializer):
             'monto', 'forma_pago',
             'fecha_anticipo', 'estado', 'observaciones',
             'fecha_alta', 'updated_at',
-            'confirmar_duplicado',  # write_only, no se guarda
+            'confirmar_duplicado', 
         ]
         read_only_fields = ['fecha_alta', 'updated_at']
 
@@ -88,6 +86,7 @@ class AnticipoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('confirmar_duplicado', None)  # por si acaso
         return super().create(validated_data)
+    
 class OperacionVentaSerializer(serializers.ModelSerializer):
     vehiculo_detalle = serializers.CharField(source='vehiculo_vendido.__str__', read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.get_full_name', read_only=True)
@@ -123,7 +122,6 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         vehiculo = validated_data['vehiculo_vendido']
         validated_data['precio_original'] = vehiculo.precio
-        
         vehiculo_usado = validated_data.get('vehiculo_usado_entregado')
         if vehiculo_usado:
             validated_data['valor_vehiculo_usado'] = vehiculo_usado.precio_costo
@@ -151,7 +149,7 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'No se puede modificar una operación que ya fue confirmada, completada o cancelada.'
             )
-
+        
         # Validar vehículo no vendido
         vehiculo = data.get('vehiculo_vendido')
         if vehiculo and vehiculo.estado == 'vendido':
@@ -159,7 +157,7 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
                 {'vehiculo_vendido': 'No se puede crear una operación para un vehículo ya vendido.'}
             )
 
-        # Validar anticipo corresponde al vehículo
+        # Validar si el anticipo corresponde al vehículo
         anticipo = data.get('anticipo')
         if anticipo and vehiculo and anticipo.vehiculo != vehiculo:
             raise serializers.ValidationError(
@@ -176,19 +174,12 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
 
         return data
     
-from decimal import Decimal
-from rest_framework import serializers
-from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro
-import datetime
-
-
 class TituloCreditoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TituloCredito
         fields = [
             'id',
             'forma_pago', 'anticipo',
-            'documento_origen',
             'tipo', 'numero_documento', 'banco_emisor', 'titular',
             'plazo_dias',
             'fecha_recepcion', 'fecha_cobro',
@@ -241,13 +232,13 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
                 'No puede referenciar una forma de pago y un anticipo al mismo tiempo.'
             )
 
-        # observaciones obligatorio cuando rechazado o en_gestion
+        # observaciones obligatorias cuando es rechazado o en gestion
         if estado in ['rechazado', 'en_gestion'] and not observaciones:
             raise serializers.ValidationError(
                 {'observaciones': 'Debe indicar el motivo cuando el estado es rechazado o en gestión.'}
             )
 
-        # fecha_cobro máximo 90 días desde recepción
+        # fecha de cobro máximo 90 días desde recepcion
         fecha_recepcion = data.get('fecha_recepcion')
         plazo_dias = data.get('plazo_dias', 0)
         if fecha_recepcion and plazo_dias:
@@ -292,5 +283,91 @@ class RegistroCobroSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'monto_mora_pagado': 'El monto de mora solo aplica para pagarés.'}
                 )
+            
+        return data
 
+from .models import EntidadFinanciera, FinanciamientoExterno
+
+
+class EntidadFinancieraSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EntidadFinanciera
+        fields = ['id', 'nombre', 'estado', 'fecha_alta', 'updated_at']
+        read_only_fields = ['fecha_alta', 'updated_at']
+
+
+class FinanciamientoExternoSerializer(serializers.ModelSerializer):
+    entidad_nombre = serializers.CharField(source='entidad.nombre', read_only=True)
+
+    class Meta:
+        model = FinanciamientoExterno
+        fields = [
+            'id',
+            'operacion',
+            'forma_pago',
+            'entidad', 'entidad_nombre',
+            'monto_aprobado', 'numero_credito', 'fecha_aprobacion',
+            'fecha_alta', 'updated_at',
+        ]
+        read_only_fields = ['fecha_alta', 'updated_at']
+
+    def validate(self, data):
+        instance = self.instance or FinanciamientoExterno()
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
+
+from .models import CreditoInterno, CuotaCredito
+
+
+class CuotaCreditoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CuotaCredito
+        fields = [
+            'id', 'credito_interno', 'numero_cuota', 'monto_cuota', 'fecha_vencimiento',
+            'monto_pagado', 'fecha_pago_real', 'forma_pago_cuota', 'monto_mora',
+            'estado', 'observaciones', 'fecha_alta', 'updated_at',
+        ]
+        read_only_fields = [
+            'credito_interno', 'numero_cuota', 'monto_cuota', 'fecha_vencimiento',
+            'fecha_alta', 'updated_at',
+        ]
+
+    def validate(self, data):
+        instance = self.instance
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
+
+
+class CreditoInternoSerializer(serializers.ModelSerializer):
+    cuotas = CuotaCreditoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CreditoInterno
+        fields = [
+            'id', 'operacion', 'forma_pago',
+            'monto_financiado', 'cantidad_cuotas', 'tasa_interes_mensual',
+            'monto_cuota', 'monto_total',
+            'fecha_primera_cuota', 'estado', 'observaciones',
+            'fecha_alta', 'updated_at', 'cuotas',
+        ]
+        read_only_fields = ['monto_cuota', 'monto_total', 'estado', 'fecha_alta', 'updated_at']
+
+    def validate(self, data):
+        instance = self.instance or CreditoInterno()
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
         return data

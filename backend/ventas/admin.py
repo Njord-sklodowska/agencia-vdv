@@ -1,8 +1,7 @@
 
 from django.contrib import admin, messages
-from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro
+from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro, EntidadFinanciera
 from django.core.exceptions import ValidationError
-
 
 class FormaPagoInline(admin.TabularInline):
     model = FormaPago
@@ -14,10 +13,9 @@ class FormaPagoInline(admin.TabularInline):
         if obj.tipo_pago not in ['cheque', 'pagare']:
             return '—'
         if hasattr(obj, 'titulo_credito'):
-            return '✅ Título registrado'
-        return '⚠️ Falta título de crédito'
+            return 'Título registrado'
+        return 'Falta título de crédito'
     titulo_estado.short_description = 'Título de Crédito'
-
 
 @admin.register(OperacionVenta)
 class OperacionVentaAdmin(admin.ModelAdmin):
@@ -59,12 +57,12 @@ class OperacionVentaAdmin(admin.ModelAdmin):
         if obj.vehiculo_vendido:
             obj.precio_original = obj.vehiculo_vendido.precio
         if obj.vehiculo_usado_entregado:
-            obj.valor_vehiculo_usado = obj.vehiculo_usado_entregado.precio_costo or 0  # ← or 0
+            obj.valor_vehiculo_usado = obj.vehiculo_usado_entregado.precio_costo or 0 
 
         obj.precio_final = (obj.precio_original or 0) - (obj.descuento_aplicado or 0) - (obj.valor_vehiculo_usado or 0)
         
         try:
-            obj.full_clean(exclude=['precio_final', 'precio_original', 'valor_vehiculo_usado'])  # ← exclude ampliado
+            obj.full_clean(exclude=['precio_final', 'precio_original', 'valor_vehiculo_usado'])
             super().save_model(request, obj, form, change)
         except ValidationError as e:
             if hasattr(e, 'message_dict'):
@@ -76,6 +74,27 @@ class OperacionVentaAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def save_related(self, request, form, formsets, change):
+        """
+        Este método se ejecuta en el Admin justo después de guardar la operación 
+        y sus inlines (Formas de Pago). Aquí replicamos la lógica de la API.
+        """
+        super().save_related(request, form, formsets, change)
+        
+        operacion = form.instance
+        
+        # Revisamos si alguna de las formas de pago de esta operación es de tipo financiamiento interno
+        for forma_pago in operacion.formas_pago.all(): # (Asegúrate de tener el related_name correcto, ej: formas_pago)
+            if getattr(forma_pago, 'tipo_pago', None) == 'financiamiento_interno':
+                # Verificamos si ya tiene un crédito interno asociado para no duplicarlo
+                from .models import CreditoInterno
+                if not hasattr(forma_pago, 'credito_interno') and not CreditoInterno.objects.filter(operacion=operacion).exists():
+                    
+                    # AQUÍ LLAMAS A LA MISMA LÓGICA / SERVICIO QUE USA TU API
+                    # Por ejemplo, si tienes una función o método de clase para generar el crédito:
+                    # CreditoInterno.objects.create(...) o tu lógica de negocio centralizada.
+                    pass
 
 @admin.register(Anticipo)
 class AnticipoAdmin(admin.ModelAdmin):
@@ -100,7 +119,7 @@ class FormaPagoAdmin(admin.ModelAdmin):
 
 @admin.register(TituloCredito)
 class TituloCreditoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tipo', 'numero_documento', 'monto', 'estado', 'fecha_recepcion', 'fecha_cobro')
+    list_display = ('id', 'tipo', 'numero_documento', 'monto', 'vehiculo_modelo', 'estado', 'fecha_recepcion', 'fecha_cobro')
     list_filter = ('tipo', 'estado', 'banco_emisor')
     search_fields = ('numero_documento', 'titular', 'banco_emisor')
     readonly_fields = (
@@ -109,8 +128,8 @@ class TituloCreditoAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        ('Origen', {
-            'fields': ('forma_pago', 'anticipo', 'documento_origen')
+        ('Referencia (elegir solo una)', {
+            'fields': ('forma_pago', 'anticipo')
         }),
         ('Datos del Documento', {
             'fields': ('tipo', 'numero_documento', 'banco_emisor', 'titular')
@@ -128,7 +147,22 @@ class TituloCreditoAdmin(admin.ModelAdmin):
             'fields': ('fecha_alta', 'updated_at')
         }),
     )
+
+    def vehiculo_modelo(self, obj):
+        operacion = None
+        if obj.forma_pago and obj.forma_pago.operacion:
+            operacion = obj.forma_pago.operacion
+        elif obj.anticipo and obj.anticipo.operacion_aplicado:
+            operacion = obj.anticipo.operacion_aplicado
+        elif obj.anticipo and obj.anticipo.vehiculo:
+            return str(obj.anticipo.vehiculo)
+
+        if operacion and operacion.vehiculo_vendido:
+            return str(operacion.vehiculo_vendido)
         
+        return '—'
+    
+    vehiculo_modelo.short_description = 'Vehículo'
 
     def save_model(self, request, obj, form, change):
         obj.full_clean()
@@ -136,13 +170,7 @@ class TituloCreditoAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
-    
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'documento_origen':
-            kwargs['queryset'] = TituloCredito.objects.filter(estado__in=['rechazado', 'en_gestion'])
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
+   
 @admin.register(RegistroCobro)
 class RegistroCobroAdmin(admin.ModelAdmin):
     list_display = ('id', 'titulo', 'fecha_pago_real', 'monto_pagado', 'forma_cobro', 'forma_acreditacion_cheque', 'pago_con_mora')
@@ -166,3 +194,35 @@ class RegistroCobroAdmin(admin.ModelAdmin):
             if titulo and titulo.tipo == 'cheque':
                 initial['forma_cobro'] = 'cheque'
         return initial
+
+@admin.register(EntidadFinanciera)
+class EntidadFinancieraAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre', 'estado', 'fecha_alta')
+    list_filter = ('estado',)
+    search_fields = ('nombre',)
+    ordering = ('nombre',)
+
+from .models import CreditoInterno, CuotaCredito
+
+
+class CuotaCreditoInline(admin.TabularInline):
+    model = CuotaCredito
+    extra = 0
+    readonly_fields = ('numero_cuota', 'monto_cuota', 'fecha_vencimiento')
+    fields = ('numero_cuota', 'monto_cuota', 'fecha_vencimiento', 'estado', 'monto_pagado', 'fecha_pago_real')
+
+
+@admin.register(CreditoInterno)
+class CreditoInternoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'operacion', 'monto_financiado', 'cantidad_cuotas', 'monto_cuota', 'estado')
+    list_filter = ('estado',)
+    inlines = [CuotaCreditoInline]
+    readonly_fields = ('monto_cuota', 'monto_total')
+
+
+@admin.register(CuotaCredito)
+class CuotaCreditoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'credito_interno', 'numero_cuota', 'fecha_vencimiento', 'estado', 'monto_pagado')
+    list_filter = ('estado',)
+    search_fields = ('credito_interno__id',)
+

@@ -21,7 +21,7 @@ class ModeloViewSet(viewsets.ModelViewSet):
     queryset = Modelo.objects.all()
     serializer_class = ModeloSerializer
     permission_classes = [IsAuthenticated]
-    # solo superadministrador y administra|tivo pueden crear/editar/eliminar
+    # solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
 class VehiculoViewSet(viewsets.ModelViewSet):
@@ -35,7 +35,10 @@ class VehiculoViewSet(viewsets.ModelViewSet):
         return Vehiculo.objects.filter(sucursal=user.sucursal)
 
     def perform_create(self, serializer):
-        serializer.save(sucursal=self.request.user.sucursal)
+        if self.request.user.sucursal:
+            serializer.save(sucursal=self.request.user.sucursal)
+        else:
+            serializer.save()
 
     # soft delete
     @action(detail=True, methods=['post'])
@@ -99,7 +102,7 @@ class VehiculoUsadoViewSet(viewsets.ModelViewSet):
     queryset = VehiculoUsado.objects.all()
     serializer_class = VehiculoUsadoSerializer
     permission_classes = [IsAuthenticated]
-    # autorización solo por superadministrador
+    # autorización solo por el superadministrador
     def get_queryset(self):
         vehiculo_id = self.request.query_params.get('vehiculo')
         if vehiculo_id:
@@ -118,7 +121,7 @@ class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
         return TrasladoVehiculo.objects.filter(Q(sucursal_origen=user.sucursal) | Q(sucursal_destino=user.sucursal)
         )
 
-    # Acción para confirmar traslado
+    # Acción de confirmar traslado
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
         traslado = self.get_object()
@@ -145,7 +148,7 @@ class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
 
         return Response({'detail': 'Traslado confirmado. Sucursal del vehículo actualizada.'})
 
-    # Acción para cancelar traslado
+    # cancelar traslado
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):
         traslado = self.get_object()

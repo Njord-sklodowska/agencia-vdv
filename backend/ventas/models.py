@@ -5,6 +5,7 @@ from django.utils import timezone
 import datetime
 from decimal import Decimal
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 
 #============================OPERACION DE VENTA ===========================================
 
@@ -18,7 +19,6 @@ class OperacionVenta(models.Model):
 
     # Relaciones
     sucursal = models.ForeignKey('sucursal.Sucursal', on_delete=models.PROTECT, related_name='operaciones')
-    # TODO: Cambiar a 'clientes.Cliente' cuando el módulo de sergiio esté listo
     cliente = models.ForeignKey('clientes.Cliente', on_delete=models.PROTECT, related_name='operaciones_titular', null=True, blank=True)
     cliente_cotitular = models.ForeignKey('clientes.Cliente', null=True, blank=True, on_delete=models.PROTECT, related_name='operaciones_cotitular')
     
@@ -36,7 +36,6 @@ class OperacionVenta(models.Model):
     precio_final = models.DecimalField(max_digits=14, decimal_places=2)
     valor_vehiculo_usado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, default=0)
     
-    
     # Gestión
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='borrador')
     numero_boleto = models.CharField(max_length=20, null=True, blank=True)
@@ -48,6 +47,7 @@ class OperacionVenta(models.Model):
     fecha_alta = models.DateTimeField(auto_now_add=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # validaciones
     def clean(self):
         original = OperacionVenta.objects.filter(pk=self.pk).first() if self.pk else None
 
@@ -76,6 +76,9 @@ class OperacionVenta(models.Model):
 
         if self.anticipo and self.vehiculo_vendido and self.anticipo.vehiculo != self.vehiculo_vendido:
             raise ValidationError({'anticipo': 'El anticipo no corresponde al vehículo seleccionado.'})
+
+        if self.descuento_aplicado and self.precio_original and self.descuento_aplicado > self.         precio_original:
+            raise ValidationError({'descuento_aplicado': 'El descuento no puede superar el precio original.'})
 
         if not self.pk and self.vehiculo_vendido_id:
             operaciones_activas = OperacionVenta.objects.filter(
@@ -115,9 +118,7 @@ class OperacionVenta(models.Model):
             self.valor_vehiculo_usado = self.vehiculo_usado_entregado.precio_costo or 0
         else:
             self.valor_vehiculo_usado = 0
-
-        self.precio_final = (self.precio_original or 0) - (self.descuento_aplicado or 0) - (self.valor_vehiculo_usado or 0)
-
+            self.precio_final = (self.precio_original or 0) - (self.descuento_aplicado or 0) - (self.valor_vehiculo_usado or 0)
         if not skip_validation:
             self.full_clean(exclude=['precio_final', 'precio_original', 'valor_vehiculo_usado'])
         
@@ -169,6 +170,7 @@ class FormaPago(models.Model):
 #======================ANTICIPO====================================================
 
 class Anticipo(models.Model):
+
     FORMA_PAGO_CHOICES = [
         ('efectivo', 'Efectivo'),
         ('transferencia', 'Transferencia'),
@@ -181,31 +183,27 @@ class Anticipo(models.Model):
         ('retenido', 'Retenido'),
     ]
 
+    #relaciones
     vehiculo = models.ForeignKey(
-        'inventario.Vehiculo', on_delete=models.PROTECT, related_name='anticipos'
-    )
-    # cambiar a 'clientes.Cliente' cuando Sergio termine ===============================
+        'inventario.Vehiculo', on_delete=models.PROTECT, related_name='anticipos')
     cliente = models.ForeignKey(
-    'clientes.Cliente', on_delete=models.PROTECT, related_name='anticipos',
-    null=True, blank=True  # cambiar cuando sergio tenga listo clientes.-
-)
+    'clientes.Cliente', on_delete=models.PROTECT, related_name='anticipos',null=True, blank=True)
     usuario_registro = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='anticipos_registrados'
-    )
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='anticipos_registrados')
     operacion_aplicado = models.ForeignKey(
-        OperacionVenta, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='anticipos'
-    )
-    
+        OperacionVenta, on_delete=models.SET_NULL,null=True, blank=True, related_name='anticipos')
+
+    # datos generales    
     monto = models.DecimalField(max_digits=14, decimal_places=2)
     forma_pago = models.CharField(max_length=15, choices=FORMA_PAGO_CHOICES)
-    fecha_anticipo = models.DateField()
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='pendiente')
     observaciones = models.TextField(blank=True)
 
+    #fechas
+    fecha_anticipo = models.DateField()
     fecha_alta = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         constraints = [
             models.CheckConstraint(condition=models.Q(monto__gt=0), name='check_monto_anticipo_positivo')
@@ -217,14 +215,15 @@ class Anticipo(models.Model):
 
         if self.monto is not None and self.monto <= 0:
             raise ValidationError({'monto': 'El monto debe ser mayor a cero.'})
+
+        if not self.pk and self.vehiculo_id and self.vehiculo.estado != 'en_stock':
+            raise ValidationError({'vehiculo': f'No se puede registrar un anticipo para un vehículo en estado "{self.vehiculo.estado}".'})
+
         hoy = datetime.date.today()
-
-        if self.fecha_anticipo:
-            if self.fecha_anticipo > hoy:
-                raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser futura.'})
-            if (hoy - self.fecha_anticipo).days > 30:
-                raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser anterior a 30 días.'})
-
+        if self.fecha_anticipo > hoy:
+            raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser futura.'})
+        if (hoy - self.fecha_anticipo).days > 30:
+            raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser anterior a 30 días.'})
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         skip_validation = kwargs.pop('skip_validation', False)
@@ -260,7 +259,6 @@ class TituloCredito(models.Model):
     ]
     PLAZO_CHOICES = [(0, '0'), (30, '30'), (60, '60'), (90, '90')]
 
-
     forma_pago = models.OneToOneField(
         'FormaPago', on_delete=models.PROTECT,
         null=True, blank=True, related_name='titulo_credito'
@@ -269,50 +267,38 @@ class TituloCredito(models.Model):
         'Anticipo', on_delete=models.PROTECT,
         null=True, blank=True, related_name='titulo_credito'
     )
-    documento_origen = models.ForeignKey(
-        'self', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='renovaciones',
-        help_text='Dejar vacío salvo que este título reemplace a otro rechazado o en gestión.'
-    )
-
+    #datos del titulo de credito
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     numero_documento = models.CharField(max_length=20)
     banco_emisor = models.CharField(max_length=100, null=True, blank=True)
     titular = models.CharField(max_length=150, null=True, blank=True)
-
-    plazo_dias = models.IntegerField(choices=PLAZO_CHOICES, null=True, blank=True)  
+    plazo_dias = models.IntegerField(choices=PLAZO_CHOICES, null=True, blank=True)
+    monto = models.DecimalField(max_digits=14, decimal_places=2)
+    interes_mora = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='pendiente')
+    observaciones = models.TextField(blank=True)  
+    
+    #fechas
     fecha_vencimiento_manual = models.DateField(
         null=True, blank=True,
-        help_text="Solo para pagarés. Fecha de vencimiento acordada, independiente de plazos fijos."
+        help_text="Solo para pagarés. Fecha de vencimiento puede ser acordada, independiente de plazos fijos."
     )
     fecha_recepcion = models.DateField()
     fecha_cobro = models.DateField(blank=True)
     fecha_acreditacion = models.DateField(null=True, blank=True)
+    fecha_alta = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     forma_acreditacion = models.CharField(
         max_length=15, choices=FORMA_ACREDITACION_CHOICES,
         null=True, blank=True
     )
-
-    monto = models.DecimalField(max_digits=14, decimal_places=2)
-    interes_mora = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
-
-    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='pendiente')
-    observaciones = models.TextField(blank=True)
-
-    fecha_alta = models.DateField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                fields=['numero_documento', 'banco_emisor'],
-                condition=models.Q(banco_emisor__isnull=False),
-                name='unique_numero_banco_emisor'
-            ),
             models.CheckConstraint(
                 condition=models.Q(monto__gt=0),
-                name='check_monto_titulo_positivo'
-            ),
+                name='check_monto_titulo_positivo'),
         ]
 
     def clean(self):
@@ -328,32 +314,42 @@ class TituloCredito(models.Model):
             if self.plazo_dias:
                 raise ValidationError({'plazo_dias': 'Este campo no aplica para pagarés, use fecha de vencimiento manual.'})
 
-        # banco_emisor obligatorio para cheques
         if self.tipo == 'cheque' and not self.banco_emisor:
             raise ValidationError({'banco_emisor': 'El banco emisor es obligatorio para cheques.'})
 
-        # interes_mora solo para pagarés
         if self.tipo == 'cheque' and self.interes_mora and self.interes_mora > 0:
             raise ValidationError({'interes_mora': 'El interés de mora solo aplica para pagarés.'})
 
-        # forma_pago y anticipo no pueden ser ambos null ni ambos completos
         if not self.forma_pago_id and not self.anticipo_id:
             raise ValidationError('Debe referenciar una forma de pago o un anticipo.')
         if self.forma_pago_id and self.anticipo_id:
             raise ValidationError('No puede referenciar una forma de pago y un anticipo al mismo tiempo.')
 
-        # observaciones obligatorio cuando rechazado o en_gestion
         if self.estado in ['rechazado', 'en_gestion'] and not self.observaciones:
             raise ValidationError({'observaciones': 'Debe indicar el motivo cuando el estado es rechazado o en gestión.'})
 
-        # fecha_cobro máximo 90 días desde recepción
+        hoy = datetime.date.today()
+        if self.fecha_recepcion and self.fecha_recepcion > hoy:
+            raise ValidationError({'fecha_recepcion': 'La fecha de recepción no puede ser futura.'})
+
         if self.fecha_recepcion and self.fecha_cobro:
             delta = (self.fecha_cobro - self.fecha_recepcion).days
             if delta > 90:
                 raise ValidationError({'fecha_cobro': 'La fecha de cobro no puede superar los 90 días desde la recepción.'})
 
+        # Unicidad numero_documento + banco_emisor 
+        if self.banco_emisor:
+            queryset = TituloCredito.objects.filter(
+                numero_documento=self.numero_documento,
+                banco_emisor=self.banco_emisor,
+            )
+            if self.pk:
+                queryset = queryset.exclude(pk=self.pk)
+            if queryset.exists():
+                raise ValidationError({'numero_documento': 'Ya existe un título con este número de documento para el mismo banco emisor.'})
+
     def save(self, *args, **kwargs):
-        skip_validation = kwargs.pop('skip_validation', False)  # ← faltaba esto
+        skip_validation = kwargs.pop('skip_validation', False)
 
         if self.tipo == 'cheque' and self.fecha_recepcion and self.plazo_dias is not None:
             from datetime import timedelta
@@ -361,16 +357,13 @@ class TituloCredito(models.Model):
         elif self.tipo == 'pagare' and self.fecha_vencimiento_manual:
             self.fecha_cobro = self.fecha_vencimiento_manual
 
-        if not skip_validation: 
+        if not skip_validation:
             self.full_clean()
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         return f"{self.tipo} #{self.numero_documento} - ${self.monto} ({self.estado})"
 
-
-# ===================== REGISTRO DE COBRO =====================
 
 class RegistroCobro(models.Model):
     FORMA_COBRO_CHOICES = [
@@ -391,7 +384,7 @@ class RegistroCobro(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='cobros_registrados'
     )
-
+    # datos del pago
     fecha_pago_real = models.DateField()
     monto_pagado = models.DecimalField(max_digits=14, decimal_places=2)
     pago_con_mora = models.BooleanField(default=False)
@@ -403,8 +396,8 @@ class RegistroCobro(models.Model):
         help_text="Solo para cheques: cómo se hizo efectivo (ventanilla o depósito)."
     )
     observaciones = models.TextField(blank=True)
-
     fecha_alta = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -412,9 +405,14 @@ class RegistroCobro(models.Model):
                 name='check_monto_pagado_positivo'
             ),
         ]
+
     def clean(self):
-        if self.pago_con_mora and self.titulo.tipo != 'pagare':
-            raise ValidationError({'pago_con_mora': 'El pago con mora solo aplica para pagarés.'})
+        hoy = datetime.date.today()
+        if self.fecha_pago_real and self.fecha_pago_real > hoy:
+            raise ValidationError({'fecha_pago_real': 'La fecha de pago no puede ser futura.'})
+
+        if self.pago_con_mora and (self.titulo.tipo != 'pagare' or self.titulo.estado != 'vencido'):
+            raise ValidationError({'pago_con_mora': 'El pago con mora solo aplica a pagarés en estado vencido.'})
 
         if self.monto_mora_pagado > 0 and self.titulo.tipo != 'pagare':
             raise ValidationError({'monto_mora_pagado': 'El monto de mora solo aplica para pagarés.'})
@@ -439,10 +437,274 @@ class RegistroCobro(models.Model):
             self.forma_cobro = 'cheque'
 
         self.full_clean()
+       
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+
+            self.titulo.estado = 'cobrado'
+            self.titulo.fecha_acreditacion = self.fecha_pago_real
+            if self.titulo.tipo == 'cheque':
+                self.titulo.forma_acreditacion = self.forma_acreditacion_cheque
+            self.titulo.save(skip_validation=True)
+
+
+# =========================== ENTIDAD FINANCIERA ===========================
+
+class EntidadFinanciera(models.Model):
+    ESTADO_CHOICES = [
+        ('activa', 'Activa'),
+        ('inactiva', 'Inactiva'),
+    ]
+
+    nombre = models.CharField(max_length=100, unique=True)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='activa')
+
+    fecha_alta = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+# ===================== FINANCIAMIENTO EXTERNO ============================
+
+class FinanciamientoExterno(models.Model):
+    """ La concesionaria no gestiona la deuda ni el
+    cobro de este crédito. Solo deja constancia de que el vehículo fue
+    pagado mediante financiamiento externo """
+
+    operacion = models.ForeignKey(
+        OperacionVenta, on_delete=models.PROTECT, related_name='financiamientos_externos'
+    )
+    forma_pago = models.OneToOneField(
+        'FormaPago', on_delete=models.PROTECT, related_name='financiamiento_externo'
+    )
+    entidad = models.ForeignKey(
+        EntidadFinanciera, on_delete=models.PROTECT, related_name='financiamientos'
+    )
+
+    monto_aprobado = models.DecimalField(max_digits=14, decimal_places=2)
+    numero_credito = models.CharField(max_length=50, null=True, blank=True)
+    fecha_aprobacion = models.DateField(null=True, blank=True)
+
+    fecha_alta = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(monto_aprobado__gt=0),
+                name='check_monto_aprobado_positivo'
+            ),
+        ]
+
+    def clean(self):
+        if self.forma_pago_id and self.forma_pago.tipo_pago != 'financiamiento_externo':
+            raise ValidationError({
+                'forma_pago': 'La forma de pago debe ser de tipo "financiamiento_externo".'
+            })
+
+        if self.operacion_id and self.forma_pago_id and self.forma_pago.operacion_id != self.operacion_id:
+            raise ValidationError({
+                'forma_pago': 'La forma de pago no corresponde a la operación seleccionada.'
+            })
+
+        hoy = datetime.date.today()
+        if self.fecha_aprobacion and self.fecha_aprobacion > hoy:
+            raise ValidationError({'fecha_aprobacion': 'La fecha de aprobación no puede ser futura.'})
+
+    def save(self, *args, **kwargs):
+        omitir_validation = kwargs.pop('omitir_validation', False)
+        if not omitir_validation:
+            self.full_clean()
         super().save(*args, **kwargs)
 
-        self.titulo.estado = 'cobrado'
-        self.titulo.fecha_acreditacion = self.fecha_pago_real
-        if self.titulo.tipo == 'cheque':
-            self.titulo.forma_acreditacion = self.forma_acreditacion_cheque
-        self.titulo.save(skip_validation=True)
+    def __str__(self):
+        return f"Financiamiento {self.entidad} - ${self.monto_aprobado} (Op {self.operacion_id})"
+
+
+# ================================ CREDITO INTERNO ======================================
+
+class CreditoInterno(models.Model):
+    """Financiamiento propio de la concesionaria, pagado en cuotas.simplifiqué: no hay proceso automático diario de verificación de mora ni alertas; el estado se actualiza cuando
+    el administrativo registra el pago de cada cuota."""
+    
+    ESTADO_CHOICES = [
+        ('activo', 'Activo'),
+        ('en_mora', 'En Mora'),
+        ('completado', 'Completado'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    operacion = models.ForeignKey(
+        OperacionVenta, on_delete=models.PROTECT, related_name='creditos_internos'
+    )
+    forma_pago = models.OneToOneField(
+        'FormaPago', on_delete=models.PROTECT, related_name='credito_interno'
+    )
+
+    monto_financiado = models.DecimalField(max_digits=14, decimal_places=2)
+    cantidad_cuotas = models.PositiveIntegerField()
+    tasa_interes_mensual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    monto_cuota = models.DecimalField(max_digits=14, decimal_places=2, editable=False)
+    monto_total = models.DecimalField(max_digits=14, decimal_places=2, editable=False)
+
+    fecha_primera_cuota = models.DateField()
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='activo')
+    observaciones = models.TextField(blank=True)
+
+    fecha_alta = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(cantidad_cuotas__gt=0),
+                name='check_cantidad_cuotas_positiva'
+            ),
+            models.CheckConstraint(
+                condition=models.Q(monto_financiado__gt=0),
+                name='check_monto_financiado_positivo'
+            ),
+        ]
+
+    def clean(self):
+        if self.forma_pago_id and self.forma_pago.tipo_pago != 'financiamiento_interno':
+            raise ValidationError({
+                'forma_pago': 'La forma de pago referenciada debe ser de tipo "financiamiento_interno".'
+            })
+
+        if self.operacion_id and self.forma_pago_id and self.forma_pago.operacion_id != self.operacion_id:
+            raise ValidationError({
+                'forma_pago': 'La forma de pago no corresponde a la operación seleccionada.'
+            })
+
+        if self.cantidad_cuotas is not None and self.cantidad_cuotas <= 0:
+            raise ValidationError({'cantidad_cuotas': 'La cantidad de cuotas debe ser mayor a cero.'})
+
+    def _obtener_tasa_default(self):
+        try:
+            from parametro_sistema.models import ParametroSistema
+            parametro = ParametroSistema.objects.get(nombre_parametro='tasa_interes_credito_interno')
+            return Decimal(parametro.valor)
+        except Exception:
+            return Decimal('5.00')  # valor de respaldo si no está cargado el parámetro
+
+    def _calcular_fecha_cuota(self, numero_cuota):
+        # suma "numero_cuota" meses a fecha_primera_cuota, sin dependencias externas
+        mes_total = self.fecha_primera_cuota.month - 1 + (numero_cuota - 1)
+        anio = self.fecha_primera_cuota.year + mes_total // 12
+        mes = mes_total % 12 + 1
+        import calendar
+        dia = min(self.fecha_primera_cuota.day, calendar.monthrange(anio, mes)[1])
+        return datetime.date(anio, mes, dia)
+
+    def save(self, *args, **kwargs):
+        skip_validation = kwargs.pop('skip_validation', False)
+        es_nuevo = self.pk is None
+
+        if es_nuevo and self.tasa_interes_mensual is None:
+            self.tasa_interes_mensual = self._obtener_tasa_default()
+
+        if self.monto_financiado and self.cantidad_cuotas and self.tasa_interes_mensual is not None:
+            interes_total = self.tasa_interes_mensual / Decimal('100') * self.cantidad_cuotas
+            self.monto_cuota = (self.monto_financiado * (1 + interes_total)) / self.cantidad_cuotas
+            self.monto_cuota = self.monto_cuota.quantize(Decimal('0.01'))
+            self.monto_total = self.monto_cuota * self.cantidad_cuotas
+
+        if not skip_validation:
+            self.full_clean(exclude=['monto_cuota', 'monto_total'])
+
+        super().save(*args, **kwargs)
+
+        if es_nuevo:
+            cuotas = [
+                CuotaCredito(
+                    credito_interno=self,
+                    numero_cuota=i,
+                    monto_cuota=self.monto_cuota,
+                    fecha_vencimiento=self._calcular_fecha_cuota(i),
+                )
+                for i in range(1, self.cantidad_cuotas + 1)
+            ]
+            CuotaCredito.objects.bulk_create(cuotas)
+
+    def __str__(self):
+        return f"Crédito Interno Op {self.operacion_id} - {self.cantidad_cuotas} cuotas de ${self.monto_cuota}"
+
+
+# =============================== CUOTA CREDITO ====================================
+
+class CuotaCredito(models.Model):
+    FORMA_PAGO_CHOICES = [
+        ('efectivo', 'Efectivo'),
+        ('transferencia', 'Transferencia'),
+        ('cheque', 'Cheque'),
+        ('pagare', 'Pagaré'),
+    ]
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('pagada', 'Pagada'),
+        ('vencida', 'Vencida'),
+        ('cancelada', 'Cancelada'),
+    ]
+
+    credito_interno = models.ForeignKey(
+        CreditoInterno, on_delete=models.PROTECT, related_name='cuotas'
+    )
+    numero_cuota = models.PositiveIntegerField()
+    monto_cuota = models.DecimalField(max_digits=14, decimal_places=2)
+    fecha_vencimiento = models.DateField()
+
+    monto_pagado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    fecha_pago_real = models.DateField(null=True, blank=True)
+    forma_pago_cuota = models.CharField(max_length=15, choices=FORMA_PAGO_CHOICES, null=True, blank=True)
+    monto_mora = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
+
+    estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='pendiente')
+    observaciones = models.TextField(blank=True)
+
+    fecha_alta = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['credito_interno', 'numero_cuota'],
+                name='unique_numero_cuota_por_credito'
+            ),
+            models.CheckConstraint(
+                condition=models.Q(monto_cuota__gt=0),
+                name='check_monto_cuota_positivo'
+            ),
+        ]
+
+    def clean(self):
+        if self.estado == 'pagada':
+            if not self.fecha_pago_real:
+                raise ValidationError({'fecha_pago_real': 'Obligatoria cuando la cuota está pagada.'})
+            if not self.monto_pagado:
+                raise ValidationError({'monto_pagado': 'Obligatorio cuando la cuota está pagada.'})
+            if not self.forma_pago_cuota:
+                raise ValidationError({'forma_pago_cuota': 'Obligatoria cuando la cuota está pagada.'})
+
+        hoy = datetime.date.today()
+        if self.fecha_pago_real and self.fecha_pago_real > hoy:
+            raise ValidationError({'fecha_pago_real': 'La fecha de pago no puede ser futura.'})
+
+    def save(self, *args, **kwargs):
+        skip_validation = kwargs.pop('skip_validation', False)
+        if not skip_validation:
+            self.full_clean()
+        super().save(*args, **kwargs)
+
+        # Si todas las cuotas del crédito están pagadas, marca el crédito como completado
+        if self.estado == 'pagada':
+            pendientes = self.credito_interno.cuotas.exclude(estado='pagada').exists()
+            if not pendientes:
+                self.credito_interno.estado = 'completado'
+                self.credito_interno.save(skip_validation=True)
+
+    def __str__(self):
+        return f"Cuota {self.numero_cuota}/{self.credito_interno.cantidad_cuotas} - {self.credito_interno}"

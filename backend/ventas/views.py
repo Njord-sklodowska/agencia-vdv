@@ -1,13 +1,13 @@
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
-from .models import OperacionVenta, FormaPago, Anticipo
-from .serializers import OperacionVentaSerializer, FormaPagoSerializer, AnticipoSerializer
-from rest_framework import serializers
+from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro,EntidadFinanciera, FinanciamientoExterno, CreditoInterno, CuotaCredito
+from .serializers import OperacionVentaSerializer, FormaPagoSerializer, AnticipoSerializer, TituloCreditoSerializer, RegistroCobroSerializer, EntidadFinancieraSerializer, CreditoInternoSerializer, CuotaCreditoSerializer, FinanciamientoExternoSerializer
 from inventario.models import Vehiculo
+from rest_framework.exceptions import ValidationError
 
 
 class OperacionVentaViewSet(viewsets.ModelViewSet):
@@ -27,20 +27,11 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                 {'detail': 'Solo se pueden confirmar operaciones en estado borrador.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         # Validar suma de formas de pago
         total_pagado = sum(fp.monto for fp in operacion.formas_pago.all())
 
         if operacion.anticipo and operacion.anticipo.estado == 'pendiente':
             total_pagado += operacion.anticipo.monto
-
-        total_pagado = sum(fp.monto for fp in operacion.formas_pago.all())
-
-        if operacion.anticipo and operacion.anticipo.estado == 'pendiente':
-            total_pagado += operacion.anticipo.monto
-
-        if total_pagado != operacion.precio_final:
-            ...
 
         if not operacion.formas_pago.exists() and not operacion.vehiculo_usado_entregado:
             return Response(
@@ -48,12 +39,25 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Validar que si el vehículo vendido es usado, tenga su evaluación registrada (RN-02)
+        if operacion.vehiculo_vendido.condicion_vehiculo == 'usado':
+            from inventario.models import VehiculoUsado
+            tiene_evaluacion = VehiculoUsado.objects.filter(
+                vehiculo=operacion.vehiculo_vendido
+            ).exists()
+            if not tiene_evaluacion:
+                return Response(
+                    {'detail': 'El vehículo a vender es usado y no tiene una evaluación registrada. Debe registrar la evaluación antes de confirmar la operación.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         if total_pagado != operacion.precio_final:
             return Response(
                 {'detail': f'La suma de formas de pago ({total_pagado}) no coincide con el precio final ({operacion.precio_final}).'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        # Validar que el vehículo usado tenga evaluación registrada
+               
+        # Validar que el vehiculo usado tenga evaluacion registrada
         if operacion.vehiculo_usado_entregado:
             from inventario.models import VehiculoUsado
             tiene_evaluacion = VehiculoUsado.objects.filter(
@@ -64,7 +68,7 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                     {'detail': 'El vehículo usado entregado como parte de pago debe tener una evaluación registrada antes de confirmar la operación.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        # Validar que toda forma de pago cheque/pagaré tenga su título de crédito
+        # Validar que la forma de pago cheque/pagare tenga su titulo de credito exista como forma de pago.
         formas_pago_titulo = operacion.formas_pago.filter(tipo_pago__in=['cheque', 'pagare'])
         for fp in formas_pago_titulo:
             if not hasattr(fp, 'titulo_credito'):
@@ -72,6 +76,14 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                     {'detail': f'La forma de pago "{fp.tipo_pago}" por ${fp.monto} no tiene un título de crédito registrado. Debe crear el título antes de confirmar.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+         # Validacion de la forma de pago financiamiento_interno tenga su crédito interno generado
+        formas_pago_credito = operacion.formas_pago.filter(tipo_pago='financiamiento_interno')
+        for fp in formas_pago_credito:
+            if not hasattr(fp, 'credito_interno'):
+                return Response(
+                    {'detail': f'La forma de pago "financiamiento_interno" por ${fp.monto} no tiene un crédito interno registrado. Debe crear el crédito antes de confirmar.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )    
 
         with transaction.atomic():
             vehiculo = Vehiculo.objects.select_for_update().get(pk=operacion.vehiculo_vendido.pk)
@@ -115,7 +127,7 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
             operacion.observaciones = motivo
             operacion.save(skip_validation=True)
 
-            # Revertir estado del vehículo
+            # Revertir estado
             vehiculo = operacion.vehiculo_vendido
             vehiculo.estado = 'reservado' if operacion.anticipo else 'en_stock'
             vehiculo.save(skip_validation=True)
@@ -151,7 +163,6 @@ class FormaPagoViewSet(viewsets.ModelViewSet):
         return FormaPago.objects.filter(operacion_id=self.kwargs['operacion_pk'])
 
     def perform_create(self, serializer):
-        from rest_framework.exceptions import ValidationError
         operacion = OperacionVenta.objects.get(pk=self.kwargs['operacion_pk'])
         
         if operacion.estado != 'borrador':
@@ -164,9 +175,9 @@ class FormaPagoViewSet(viewsets.ModelViewSet):
             raise ValidationError(
                 f'El monto supera el precio final. Disponible: {operacion.precio_final - total_actual}'
             )
-        
+     #  si tipo_pago es 'financiamiento_interno', el CreditoInterno
+    # se crea aparte con un POST a /creditos-internos/, referenciando esta forma de pago.
         serializer.save(operacion=operacion)
-
 
 class AnticipoViewSet(viewsets.ModelViewSet):
     serializer_class = AnticipoSerializer
@@ -177,10 +188,6 @@ class AnticipoViewSet(viewsets.ModelViewSet):
         # TODO: filtrar por sucursal del usuario cuando Sergio termine roles
         return Anticipo.objects.all()
     
-from .models import TituloCredito, RegistroCobro
-from .serializers import TituloCreditoSerializer, RegistroCobroSerializer
-
-
 class TituloCreditoViewSet(viewsets.ModelViewSet):
     serializer_class = TituloCreditoSerializer
     permission_classes = [IsAuthenticated]
@@ -225,4 +232,69 @@ class RegistroCobroViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(usuario_registro=request.user)
+        serializer.save(usuario_registro=self.request.user)
+
+class EntidadFinancieraViewSet(viewsets.ModelViewSet):
+    queryset = EntidadFinanciera.objects.all()
+    serializer_class = EntidadFinancieraSerializer
+    permission_classes = [IsAuthenticated]
+    # TODO: solo administrativo y superiores pueden crear/editar
+
+
+class FinanciamientoExternoViewSet(viewsets.ModelViewSet):
+    serializer_class = FinanciamientoExternoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = FinanciamientoExterno.objects.all()
+        operacion_id = self.request.query_params.get('operacion')
+        if operacion_id:
+            queryset = queryset.filter(operacion_id=operacion_id)
+        return queryset
+
+
+class CreditoInternoViewSet(viewsets.ModelViewSet):
+    serializer_class = CreditoInternoSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']  # sin update/delete el credito no se edita una vez creado
+
+    def get_queryset(self):
+        queryset = CreditoInterno.objects.all()
+        operacion_id = self.request.query_params.get('operacion')
+        if operacion_id:
+            queryset = queryset.filter(operacion_id=operacion_id)
+        return queryset
+
+
+class CuotaCreditoViewSet(viewsets.ModelViewSet):
+    serializer_class = CuotaCreditoSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'patch', 'head', 'options']  # las cuotas no se crean/borran manualmente
+
+    def get_queryset(self):
+        return CuotaCredito.objects.filter(credito_interno_id=self.kwargs['credito_pk'])
+
+    @action(detail=True, methods=['post'])
+    def registrar_pago(self, request, pk=None, credito_pk=None):
+        cuota = self.get_object()
+
+        if cuota.estado == 'pagada':
+            return Response(
+                {'detail': 'Esta cuota ya fue pagada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        cuota.monto_pagado = request.data.get('monto_pagado')
+        cuota.fecha_pago_real = request.data.get('fecha_pago_real')
+        cuota.forma_pago_cuota = request.data.get('forma_pago_cuota')
+        cuota.monto_mora = request.data.get('monto_mora', 0)
+        cuota.estado = 'pagada'
+
+        try:
+            cuota.save()
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'detail': 'Cuota registrada como pagada.'})

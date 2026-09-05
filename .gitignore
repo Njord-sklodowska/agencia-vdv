@@ -26,8 +26,7 @@ Thumbs.db
 # PyCharm
 .idea/
 
-# Migraciones generadas automáticamente (opcional, depende del equipo)
-# */migrations/*.py  ← no lo agregues, en Django se suelen versionar
+# Migraciones generadas automáticamente
 
 # tengo que eliminar core
 backend/core/
