@@ -15,15 +15,18 @@ router.register(r'creditos-internos', CreditoInternoViewSet, basename='credito-i
 
 urlpatterns = [
     path('', include(router.urls)),
+
     path('operaciones/<int:operacion_pk>/formas-pago/', FormaPagoViewSet.as_view({
         'get': 'list',
         'post': 'create'
     }), name='operacion-formaspago-list'),
     path('operaciones/<int:operacion_pk>/formas-pago/<int:pk>/', FormaPagoViewSet.as_view({
         'get': 'retrieve',
+        'patch': 'partial_update',
         'delete': 'destroy'
     }), name='operacion-formaspago-detail'),
-      path('creditos-internos/<int:credito_pk>/cuotas/', CuotaCreditoViewSet.as_view({
+
+    path('creditos-internos/<int:credito_pk>/cuotas/', CuotaCreditoViewSet.as_view({
         'get': 'list'
     }), name='credito-cuotas-list'),
     path('creditos-internos/<int:credito_pk>/cuotas/<int:pk>/', CuotaCreditoViewSet.as_view({
@@ -33,6 +36,5 @@ urlpatterns = [
     path('creditos-internos/<int:credito_pk>/cuotas/<int:pk>/registrar_pago/', CuotaCreditoViewSet.as_view({
         'post': 'registrar_pago'
     }), name='credito-cuotas-registrar-pago'),
-
 ]
      

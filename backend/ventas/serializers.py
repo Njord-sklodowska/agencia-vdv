@@ -101,7 +101,7 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
             'sucursal',
             'cliente', 'cliente_nombre',
             'cliente_cotitular',
-            'vehiculo_vendido', 'vehiculo_detalle',
+            'vehiculo_vendido', 'vehiculo_detalle', 
             'vehiculo_usado_entregado',
             'vendedor', 'usuario_registro',
             'anticipo',
@@ -182,7 +182,7 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
             'forma_pago', 'anticipo',
             'tipo', 'numero_documento', 'banco_emisor', 'titular',
             'plazo_dias',
-            'fecha_recepcion', 'fecha_cobro',
+            'fecha_recepcion', 'fecha_cobro', 'fecha_vencimiento_manual',
             'fecha_acreditacion', 'forma_acreditacion',
             'monto', 'interes_mora',
             'estado', 'observaciones',
@@ -197,6 +197,8 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_plazo_dias(self, value):
+        if value is None:
+            return value
         if value not in [0, 30, 60, 90]:
             raise serializers.ValidationError('El plazo debe ser 0, 30, 60 o 90 días.')
         return value
@@ -248,6 +250,14 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'plazo_dias': 'La fecha de cobro no puede superar los 90 días desde la recepción.'}
                 )
+# Ejecuta las validaciones del modelo (clean()) para atrapar errores y devolverlos como error 400.
+        instance = self.instance or TituloCredito()
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
 
         return data
 
@@ -350,17 +360,24 @@ class CuotaCreditoSerializer(serializers.ModelSerializer):
 
 class CreditoInternoSerializer(serializers.ModelSerializer):
     cuotas = CuotaCreditoSerializer(many=True, read_only=True)
+    fecha_primera_cuota = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = CreditoInterno
         fields = [
             'id', 'operacion', 'forma_pago',
-            'monto_financiado', 'cantidad_cuotas', 'tasa_interes_mensual',
+            'monto_financiado', 'cantidad_cuotas', 'tasa_interes_mensual', 'fecha_primera_cuota',  
             'monto_cuota', 'monto_total',
-            'fecha_primera_cuota', 'estado', 'observaciones',
+            'estado', 'observaciones', 
             'fecha_alta', 'updated_at', 'cuotas',
         ]
-        read_only_fields = ['monto_cuota', 'monto_total', 'estado', 'fecha_alta', 'updated_at']
+        read_only_fields = [
+        'monto_cuota', 
+        'monto_total', 
+        'estado', 
+        'fecha_alta', 
+        'updated_at'
+    ]
 
     def validate(self, data):
         instance = self.instance or CreditoInterno()

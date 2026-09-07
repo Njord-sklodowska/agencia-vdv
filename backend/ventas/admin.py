@@ -19,7 +19,7 @@ class FormaPagoInline(admin.TabularInline):
 
 @admin.register(OperacionVenta)
 class OperacionVentaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'vehiculo_vendido', 'cliente', 'estado', 'precio_final', 'fecha_operacion')
+    list_display = ('id', 'numero_boleto', 'vehiculo_vendido', 'cliente', 'estado', 'precio_final', 'fecha_operacion')
     list_filter = ('estado', 'sucursal')
     search_fields = ('vehiculo_vendido__patente', 'vehiculo_vendido__vin')
     readonly_fields = ('fecha_alta', 'updated_at', 'fecha_cambio_estado', 'precio_final', 'precio_original')

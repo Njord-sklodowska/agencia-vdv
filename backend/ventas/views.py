@@ -83,7 +83,14 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
                 return Response(
                     {'detail': f'La forma de pago "financiamiento_interno" por ${fp.monto} no tiene un crédito interno registrado. Debe crear el crédito antes de confirmar.'},
                     status=status.HTTP_400_BAD_REQUEST
-                )    
+                )  
+            
+# Validar que la operación tenga numero de boleto antes de confirmar
+        if not operacion.numero_boleto:
+            return Response(
+                {'detail': 'Debe indicar el número de boleto antes de confirmar la operación.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )  
 
         with transaction.atomic():
             vehiculo = Vehiculo.objects.select_for_update().get(pk=operacion.vehiculo_vendido.pk)
@@ -161,6 +168,26 @@ class FormaPagoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return FormaPago.objects.filter(operacion_id=self.kwargs['operacion_pk'])
+
+    def perform_update(self, serializer):
+        from rest_framework.exceptions import ValidationError
+
+        forma_pago = self.get_object()
+        operacion = forma_pago.operacion
+
+        if operacion.estado != 'borrador':
+            raise ValidationError('No se pueden editar formas de pago de una operación que no está en borrador.')
+
+        if hasattr(forma_pago, 'titulo_credito'):
+            raise ValidationError('No se puede editar esta forma de pago porque ya tiene un título de crédito asociado. Elimine el título primero.')
+
+        if hasattr(forma_pago, 'credito_interno'):
+            raise ValidationError('No se puede editar esta forma de pago porque ya tiene un crédito interno asociado.')
+
+        if hasattr(forma_pago, 'financiamiento_externo'):
+            raise ValidationError('No se puede editar esta forma de pago porque ya tiene un financiamiento externo asociado.')
+
+        serializer.save()
 
     def perform_create(self, serializer):
         operacion = OperacionVenta.objects.get(pk=self.kwargs['operacion_pk'])

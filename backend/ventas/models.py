@@ -6,6 +6,13 @@ import datetime
 from decimal import Decimal
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.core.validators import RegexValidator
+
+numero_cheque_validator = RegexValidator(
+    regex=r'^\d{8}$',
+    message='El número de cheque debe tener 8 dígitos numéricos.',
+    code='invalid_numero_cheque'
+)
 
 #============================OPERACION DE VENTA ===========================================
 
@@ -145,7 +152,7 @@ class FormaPago(models.Model):
     monto = models.DecimalField(max_digits=14, decimal_places=2)
     cotizacion_dolar = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
-
+   
     class Meta:
         constraints = [
        models.CheckConstraint(condition=models.Q(monto__gt=0), name='check_monto_forma_pago_positivo')]
@@ -281,8 +288,9 @@ class TituloCredito(models.Model):
     #fechas
     fecha_vencimiento_manual = models.DateField(
         null=True, blank=True,
-        help_text="Solo para pagarés. Fecha de vencimiento puede ser acordada, independiente de plazos fijos."
+        help_text="Obligatoria para pagarés. Opcional para cheques cuando hay plazos."
     )
+    
     fecha_recepcion = models.DateField()
     fecha_cobro = models.DateField(blank=True)
     fecha_acreditacion = models.DateField(null=True, blank=True)
@@ -303,10 +311,10 @@ class TituloCredito(models.Model):
 
     def clean(self):
         if self.tipo == 'cheque':
-            if self.plazo_dias is None:
-                raise ValidationError({'plazo_dias': 'El plazo en días es obligatorio para cheques.'})
-            if self.fecha_vencimiento_manual:
-                raise ValidationError({'fecha_vencimiento_manual': 'Este campo no aplica para cheques.'})
+            if self.plazo_dias is None and not self.fecha_vencimiento_manual:
+                raise ValidationError('Debe indicar el plazo en días o una fecha de vencimiento manual para el cheque.')
+            if self.plazo_dias is not None and self.fecha_vencimiento_manual:
+                raise ValidationError('No puede indicar plazo_dias y fecha_vencimiento_manual al mismo tiempo. Use solo uno.')
 
         if self.tipo == 'pagare':
             if not self.fecha_vencimiento_manual:
@@ -314,8 +322,17 @@ class TituloCredito(models.Model):
             if self.plazo_dias:
                 raise ValidationError({'plazo_dias': 'Este campo no aplica para pagarés, use fecha de vencimiento manual.'})
 
+            if not self.titular:
+                raise ValidationError({'titular': 'El titular es obligatorio para pagarés.'})
+
         if self.tipo == 'cheque' and not self.banco_emisor:
             raise ValidationError({'banco_emisor': 'El banco emisor es obligatorio para cheques.'})
+
+        if self.tipo == 'cheque' and self.numero_documento:
+            try:
+                numero_cheque_validator(self.numero_documento)
+            except ValidationError as e:
+                raise ValidationError({'numero_documento': e.messages})
 
         if self.tipo == 'cheque' and self.interes_mora and self.interes_mora > 0:
             raise ValidationError({'interes_mora': 'El interés de mora solo aplica para pagarés.'})
@@ -324,6 +341,22 @@ class TituloCredito(models.Model):
             raise ValidationError('Debe referenciar una forma de pago o un anticipo.')
         if self.forma_pago_id and self.anticipo_id:
             raise ValidationError('No puede referenciar una forma de pago y un anticipo al mismo tiempo.')
+        
+    # El tipo del título debe coincidir con el tipo_pago de la forma de pago referenciada
+        if self.forma_pago_id and self.forma_pago.tipo_pago != self.tipo:
+            raise ValidationError({
+                'tipo': f'El tipo de título ({self.tipo}) no coincide con el tipo de la forma de pago referenciada ({self.forma_pago.tipo_pago}).'
+            })
+
+    # El monto del título debe coincidir con el de la forma de pago o anticipo que referencia
+        if self.forma_pago_id and self.monto != self.forma_pago.monto:
+            raise ValidationError({
+                'monto': f'El monto (${self.monto}) debe coincidir con el de la forma de pago (${self.forma_pago.monto}).'
+            })
+        if self.anticipo_id and self.monto != self.anticipo.monto:
+            raise ValidationError({
+                'monto': f'El monto (${self.monto}) debe coincidir con el del anticipo (${self.anticipo.monto}).'
+            })
 
         if self.estado in ['rechazado', 'en_gestion'] and not self.observaciones:
             raise ValidationError({'observaciones': 'Debe indicar el motivo cuando el estado es rechazado o en gestión.'})
@@ -348,14 +381,25 @@ class TituloCredito(models.Model):
             if queryset.exists():
                 raise ValidationError({'numero_documento': 'Ya existe un título con este número de documento para el mismo banco emisor.'})
 
+        if self.tipo == 'pagare' and self.titular:
+            queryset = TituloCredito.objects.filter(
+                tipo='pagare',
+                numero_documento=self.numero_documento,
+                titular=self.titular,
+            )
+            if self.pk:
+                queryset = queryset.exclude(pk=self.pk)
+            if queryset.exists():
+                raise ValidationError({'numero_documento': 'Ya existe un pagaré con este número de documento para el mismo titular.'})
+
     def save(self, *args, **kwargs):
         skip_validation = kwargs.pop('skip_validation', False)
 
-        if self.tipo == 'cheque' and self.fecha_recepcion and self.plazo_dias is not None:
+        if self.fecha_vencimiento_manual:
+            self.fecha_cobro = self.fecha_vencimiento_manual
+        elif self.tipo == 'cheque' and self.fecha_recepcion and self.plazo_dias is not None:
             from datetime import timedelta
             self.fecha_cobro = self.fecha_recepcion + timedelta(days=self.plazo_dias)
-        elif self.tipo == 'pagare' and self.fecha_vencimiento_manual:
-            self.fecha_cobro = self.fecha_vencimiento_manual
 
         if not skip_validation:
             self.full_clean()
@@ -603,6 +647,9 @@ class CreditoInterno(models.Model):
     def save(self, *args, **kwargs):
         skip_validation = kwargs.pop('skip_validation', False)
         es_nuevo = self.pk is None
+
+        if not self.fecha_primera_cuota:
+            self.fecha_primera_cuota = datetime.date.today()
 
         if es_nuevo and self.tasa_interes_mensual is None:
             self.tasa_interes_mensual = self._obtener_tasa_default()
