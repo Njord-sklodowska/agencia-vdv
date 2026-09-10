@@ -1,6 +1,6 @@
 
 from django.contrib import admin, messages
-from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro, EntidadFinanciera
+from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro, EntidadFinanciera, CreditoInterno, CuotaCredito, FinanciamientoExterno
 from django.core.exceptions import ValidationError
 
 class FormaPagoInline(admin.TabularInline):
@@ -90,10 +90,6 @@ class OperacionVentaAdmin(admin.ModelAdmin):
                 # Verificamos si ya tiene un crédito interno asociado para no duplicarlo
                 from .models import CreditoInterno
                 if not hasattr(forma_pago, 'credito_interno') and not CreditoInterno.objects.filter(operacion=operacion).exists():
-                    
-                    # AQUÍ LLAMAS A LA MISMA LÓGICA / SERVICIO QUE USA TU API
-                    # Por ejemplo, si tienes una función o método de clase para generar el crédito:
-                    # CreditoInterno.objects.create(...) o tu lógica de negocio centralizada.
                     pass
 
 @admin.register(Anticipo)
@@ -202,7 +198,13 @@ class EntidadFinancieraAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
     ordering = ('nombre',)
 
-from .models import CreditoInterno, CuotaCredito
+
+@admin.register(FinanciamientoExterno)
+class FinanciamientoExternoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'operacion', 'entidad', 'monto_aprobado', 'numero_credito', 'fecha_aprobacion')
+    list_filter = ('entidad',)
+    search_fields = ('numero_credito', 'operacion__id')
+    ordering = ('-fecha_alta',)
 
 
 class CuotaCreditoInline(admin.TabularInline):

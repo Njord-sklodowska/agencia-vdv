@@ -102,7 +102,9 @@ class VehiculoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
 
         return data
     
@@ -132,9 +134,9 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         read_only_fields = ['fecha_alta', 'updated_at']
 
     def validate_porcentaje_deduccion(self, value):
-        if value is not None and (value < 15 or value > 20):
+        if value is not None and (value < 1 or value > 20):
             raise serializers.ValidationError(
-                'El porcentaje de deducción debe estar entre 15 y 20.'
+                'El porcentaje de deducción debe estar entre 1 y 20.'
             )
         return value
 

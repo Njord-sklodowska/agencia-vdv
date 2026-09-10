@@ -1,12 +1,14 @@
 
 from rest_framework import serializers
-from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro
+from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, RegistroCobro, CreditoInterno, CuotaCredito, EntidadFinanciera, FinanciamientoExterno
 import datetime
 from django.core.exceptions import ValidationError
 from inventario.models import Vehiculo
 from decimal import Decimal
 
+
 class FormaPagoSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = FormaPago
         fields = ['id', 'operacion', 'tipo_pago', 'monto', 'cotizacion_dolar', 'fecha_registro']
@@ -19,7 +21,9 @@ class FormaPagoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
         return data
 
 
@@ -78,13 +82,15 @@ class AnticipoSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         try:
             instance.clean()
-        except Exception as e:
-            raise serializers.ValidationError(e.message_dict)
+        except ValidationError as e:
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
 
         return data
 
     def create(self, validated_data):
-        validated_data.pop('confirmar_duplicado', None)  # por si acaso
+        validated_data.pop('confirmar_duplicado', None) 
         return super().create(validated_data)
     
 class OperacionVentaSerializer(serializers.ModelSerializer):
@@ -170,7 +176,9 @@ class OperacionVentaSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
 
         return data
     
@@ -224,7 +232,7 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
                 {'interes_mora': 'El interés de mora solo aplica para pagarés.'}
             )
 
-        # forma_pago y anticipo no pueden ser ambos null ni ambos completos
+    # forma_pago y anticipo no pueden ser ambos null ni ambos completos
         if not forma_pago and not anticipo:
             raise serializers.ValidationError(
                 'Debe referenciar una forma de pago o un anticipo.'
@@ -234,7 +242,7 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
                 'No puede referenciar una forma de pago y un anticipo al mismo tiempo.'
             )
 
-        # observaciones obligatorias cuando es rechazado o en gestion
+    # observaciones obligatorias cuando es rechazado o en gestion
         if estado in ['rechazado', 'en_gestion'] and not observaciones:
             raise serializers.ValidationError(
                 {'observaciones': 'Debe indicar el motivo cuando el estado es rechazado o en gestión.'}
@@ -257,7 +265,9 @@ class TituloCreditoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
 
         return data
 
@@ -295,9 +305,7 @@ class RegistroCobroSerializer(serializers.ModelSerializer):
                 )
             
         return data
-
-from .models import EntidadFinanciera, FinanciamientoExterno
-
+    
 
 class EntidadFinancieraSerializer(serializers.ModelSerializer):
     class Meta:
@@ -328,10 +336,10 @@ class FinanciamientoExternoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
         return data
-
-from .models import CreditoInterno, CuotaCredito
 
 
 class CuotaCreditoSerializer(serializers.ModelSerializer):
@@ -354,7 +362,9 @@ class CuotaCreditoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
         return data
 
 
@@ -386,5 +396,7 @@ class CreditoInternoSerializer(serializers.ModelSerializer):
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+            raise serializers.ValidationError(
+                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
+            )
         return data

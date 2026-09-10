@@ -310,7 +310,7 @@ class TituloCreditoTestCase(TestCase):
         datos = dict(
             forma_pago=self.forma_pago_cheque,
             tipo='cheque',
-            numero_documento='CHQ001',
+            numero_documento='12345678',
             banco_emisor='Banco Nación',
             plazo_dias=30,
             fecha_recepcion=datetime.date.today(),
@@ -381,7 +381,7 @@ class TituloCreditoTestCase(TestCase):
         )
         t2 = TituloCredito(**self._datos_cheque(
             forma_pago=otra_forma_pago,
-            numero_documento='CHQ001',  # mismo número
+            numero_documento='12349876',  # mismo número
             banco_emisor='Banco Nación',  # mismo banco
         ))
         with self.assertRaises(ValidationError):
@@ -392,7 +392,7 @@ class TituloCreditoTestCase(TestCase):
         t = TituloCredito(**self._datos_cheque(estado='rechazado'))
         with self.assertRaises(ValidationError):
             t.save()
-
+from django.db.utils import IntegrityError
 
 class RegistroCobroTestCase(TestCase):
 
@@ -432,7 +432,7 @@ class RegistroCobroTestCase(TestCase):
         )
         self.titulo_cheque = TituloCredito.objects.create(
             forma_pago=self.forma_pago_cheque, tipo='cheque',
-            numero_documento='CHQ900', banco_emisor='Banco Galicia',
+            numero_documento='12345655', banco_emisor='Banco Galicia',
             plazo_dias=0, fecha_recepcion=datetime.date.today(), monto=8000000,
         )
 
@@ -441,9 +441,11 @@ class RegistroCobroTestCase(TestCase):
         )
         self.titulo_pagare = TituloCredito.objects.create(
             forma_pago=self.forma_pago_pagare, tipo='pagare',
-            numero_documento='PAG900',
+            numero_documento='12345600', 
+            titular='Juan Pérez',
             fecha_vencimiento_manual=datetime.date.today() + datetime.timedelta(days=30),
-            fecha_recepcion=datetime.date.today(), monto=4000000,
+            fecha_recepcion=datetime.date.today(), 
+            monto=4000000,
         )
 
     def test_cobro_de_cheque_marca_titulo_como_cobrado(self):
@@ -631,3 +633,201 @@ class CreditoInternoTestCase(TestCase):
 
         credito.refresh_from_db()
         self.assertEqual(credito.estado, 'completado')
+
+class CalculosFinancierosEdgeCasesTestCase(TestCase):
+    """
+    Casos borde de validaciones cruzadas y cálculos financieros:
+    intereses de mora, cuotas de crédito interno, conversión de dólares,
+    y desalineación de montos entre documentos relacionados.
+    """
+
+    def setUp(self):
+        self.sucursal = Sucursal.objects.create(
+            nombre='Del Valle Centro', direccion='Calle Falsa 123',
+            ciudad='Mendoza', provincia='Mendoza',
+        )
+        self.marca = Marca.objects.create(nombre='Peugeot')
+        self.modelo = Modelo.objects.create(
+            marca=self.marca, nombre='208', carroceria='hatchback',
+        )
+        self.usuario = Usuario.objects.create_user(
+            username='edge_test', password='test12345'
+        )
+        self.cliente = Cliente.objects.create(
+            tipo_persona='fisica', dni_cuit='30444555666', cuil='20444555661',
+            condicion_iva='consumidor_final', nombre='Edge', apellido='Case',
+            telefono='2614445566', domicilio_real='Calle Edge 1',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo,
+            condicion_vehiculo='0km', vin='EDGCASE00000000X1',
+            anio=2026, color='Negro', precio_costo=8000000, precio=10000000,
+            descripcion_tecnica='Test edge', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='EDGE-0001',
+            kilometraje=5,
+        )
+        self.operacion = OperacionVenta.objects.create(
+            sucursal=self.sucursal, cliente=self.cliente,
+            vehiculo_vendido=self.vehiculo, vendedor=self.usuario,
+            usuario_registro=self.usuario, fecha_operacion=datetime.date.today(),
+        )
+
+    # ---------- Conversión de dólares ----------
+
+    def test_forma_pago_dolares_sin_cotizacion_falla(self):
+        from ventas.models import FormaPago
+        fp = FormaPago(operacion=self.operacion, tipo_pago='dolares', monto=1000)
+        with self.assertRaises(ValidationError):
+            fp.save()
+
+    def test_forma_pago_no_dolares_con_cotizacion_falla(self):
+        from ventas.models import FormaPago
+        fp = FormaPago(
+            operacion=self.operacion, tipo_pago='efectivo', monto=1000,
+            cotizacion_dolar=Decimal('1000.00'),
+        )
+        with self.assertRaises(ValidationError):
+            fp.save()
+
+    def test_forma_pago_dolares_con_cotizacion_cero_falla(self):
+        from ventas.models import FormaPago
+        # cotizacion_dolar=0 es "falsy" en Python: debe seguir exigiendo cotización real
+        fp = FormaPago(
+            operacion=self.operacion, tipo_pago='dolares', monto=1000,
+            cotizacion_dolar=Decimal('0.00'),
+        )
+        with self.assertRaises(ValidationError):
+            fp.save()
+
+    # ---------- Desalineación de montos: TituloCredito vs FormaPago ----------
+
+    def test_titulo_monto_desalineado_de_forma_pago_falla(self):
+        from ventas.models import FormaPago, TituloCredito
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='cheque', monto=Decimal('300000.00'))
+        titulo = TituloCredito(
+            forma_pago=fp, tipo='cheque', numero_documento='11223344',
+            banco_emisor='Banco Test', plazo_dias=30,
+            fecha_recepcion=datetime.date.today(), monto=Decimal('299999.99'),  # 1 centavo de diferencia
+        )
+        with self.assertRaises(ValidationError):
+            titulo.save()
+
+    def test_titulo_tipo_no_coincide_con_forma_pago_falla(self):
+        from ventas.models import FormaPago, TituloCredito
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='pagare', monto=Decimal('300000.00'))
+        titulo = TituloCredito(
+            forma_pago=fp, tipo='cheque',  # tipo distinto al de la forma de pago
+            numero_documento='11223345', banco_emisor='Banco Test', plazo_dias=30,
+            fecha_recepcion=datetime.date.today(), monto=Decimal('300000.00'),
+        )
+        with self.assertRaises(ValidationError):
+            titulo.save()
+
+    # ---------- Interés de mora ----------
+
+    def test_pago_con_mora_en_pagare_no_vencido_falla(self):
+        from ventas.models import FormaPago, TituloCredito, RegistroCobro
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='pagare', monto=Decimal('200000.00'))
+        titulo = TituloCredito.objects.create(
+            forma_pago=fp, tipo='pagare', numero_documento='PAGEDGE01', titular='Cliente Edge',
+            fecha_vencimiento_manual=datetime.date.today() + datetime.timedelta(days=30),
+            fecha_recepcion=datetime.date.today(), monto=Decimal('200000.00'),
+        )
+        # titulo.estado sigue en 'pendiente', no 'vencido'
+        rc = RegistroCobro(
+            titulo=titulo, usuario_registro=self.usuario,
+            fecha_pago_real=datetime.date.today(), monto_pagado=Decimal('200000.00'),
+            forma_cobro='pagare', pago_con_mora=True, monto_mora_pagado=Decimal('5000.00'),
+        )
+        with self.assertRaises(ValidationError):
+            rc.save()
+
+    def test_interes_mora_en_cheque_falla(self):
+        from ventas.models import FormaPago, TituloCredito
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='cheque', monto=Decimal('200000.00'))
+        titulo = TituloCredito(
+            forma_pago=fp, tipo='cheque', numero_documento='11223346',
+            banco_emisor='Banco Test', plazo_dias=30,
+            fecha_recepcion=datetime.date.today(), monto=Decimal('200000.00'),
+            interes_mora=Decimal('500.00'),  # no debería aplicar a cheques
+        )
+        with self.assertRaises(ValidationError):
+            titulo.save()
+
+    # ---------- Cuotas de crédito interno: cálculo y casos borde ----------
+
+    def test_credito_interno_cuotas_cero_falla(self):
+        from ventas.models import FormaPago, CreditoInterno
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='financiamiento_interno', monto=Decimal('500000.00'))
+        credito = CreditoInterno(
+            operacion=self.operacion, forma_pago=fp,
+            monto_financiado=Decimal('500000.00'), cantidad_cuotas=0,
+            tasa_interes_mensual=Decimal('5.00'),
+            fecha_primera_cuota=datetime.date.today() + datetime.timedelta(days=30),
+        )
+        with self.assertRaises(ValidationError):
+            credito.save()
+
+    def test_credito_interno_monto_financiado_cero_falla(self):
+        with self.assertRaises((ValidationError, IntegrityError)):
+            FormaPago.objects.create(
+                operacion=self.operacion, 
+                tipo_pago='financiamiento_interno', 
+                monto=Decimal('0.00')
+            )
+
+    def test_credito_interno_calculo_cuota_con_tasa_decimal_no_redonda(self):
+        """
+        Verifica que el cálculo de cuota siempre quede en exactamente 2 decimales,
+        incluso con una tasa que produce divisiones no exactas (caso borde de redondeo).
+        """
+        from ventas.models import FormaPago, CreditoInterno
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='financiamiento_interno', monto=Decimal('333333.00'))
+        credito = CreditoInterno.objects.create(
+            operacion=self.operacion, forma_pago=fp,
+            monto_financiado=Decimal('333333.00'), cantidad_cuotas=7,  # división no redonda
+            tasa_interes_mensual=Decimal('3.33'),
+            fecha_primera_cuota=datetime.date.today() + datetime.timedelta(days=30),
+        )
+        _, digits, exponent = credito.monto_cuota.as_tuple()
+        self.assertEqual(exponent, -2)  # exactamente 2 decimales, sin errores de redondeo
+        self.assertEqual(credito.cuotas.count(), 7)
+
+    def test_cuota_marcada_pagada_sin_estado_explicito_falla(self):
+        """
+        Caso borde: se cargan los datos de pago pero no se marca el estado como
+        'pagada' -> debe bloquear (regla agregada para evitar pagos no confirmados).
+        """
+        from ventas.models import FormaPago, CreditoInterno
+        fp = FormaPago.objects.create(operacion=self.operacion, tipo_pago='financiamiento_interno', monto=Decimal('300000.00'))
+        credito = CreditoInterno.objects.create(
+            operacion=self.operacion, forma_pago=fp,
+            monto_financiado=Decimal('300000.00'), cantidad_cuotas=3,
+            tasa_interes_mensual=Decimal('5.00'),
+            fecha_primera_cuota=datetime.date.today() + datetime.timedelta(days=30),
+        )
+        cuota = credito.cuotas.first()
+        cuota.monto_pagado = cuota.monto_cuota
+        cuota.fecha_pago_real = datetime.date.today()
+        cuota.forma_pago_cuota = 'efectivo'
+        # estado sigue en 'pendiente' -> debe fallar
+        with self.assertRaises(ValidationError):
+            cuota.save()
+
+    # ---------- Confirmar operación con montos desalineados (caso borde central) ----------
+
+    def test_confirmar_operacion_con_suma_formas_pago_desalineada(self):
+        """
+        Caso borde solicitado explícitamente: intentar confirmar una venta
+        con la suma de formas de pago desalineada respecto al precio_final.
+        """
+        from ventas.models import FormaPago
+        FormaPago.objects.create(operacion=self.operacion, tipo_pago='efectivo', monto=Decimal('9999999.99'))
+        # precio_final de self.operacion es 10000000.00 -> desalineado por 1 centavo
+
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.usuario)
+        response = client.post(f'/api/ventas/operaciones/{self.operacion.id}/confirmar/')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('no coincide', str(response.data))

@@ -84,7 +84,7 @@ class OperacionVenta(models.Model):
         if self.anticipo and self.vehiculo_vendido and self.anticipo.vehiculo != self.vehiculo_vendido:
             raise ValidationError({'anticipo': 'El anticipo no corresponde al vehículo seleccionado.'})
 
-        if self.descuento_aplicado and self.precio_original and self.descuento_aplicado > self.         precio_original:
+        if self.descuento_aplicado and self.precio_original and self.descuento_aplicado > self.precio_original:
             raise ValidationError({'descuento_aplicado': 'El descuento no puede superar el precio original.'})
 
         if not self.pk and self.vehiculo_vendido_id:
@@ -125,7 +125,8 @@ class OperacionVenta(models.Model):
             self.valor_vehiculo_usado = self.vehiculo_usado_entregado.precio_costo or 0
         else:
             self.valor_vehiculo_usado = 0
-            self.precio_final = (self.precio_original or 0) - (self.descuento_aplicado or 0) - (self.valor_vehiculo_usado or 0)
+
+        self.precio_final = (self.precio_original or 0) - (self.descuento_aplicado or 0) - (self.valor_vehiculo_usado or 0)
         if not skip_validation:
             self.full_clean(exclude=['precio_final', 'precio_original', 'valor_vehiculo_usado'])
         
@@ -227,10 +228,15 @@ class Anticipo(models.Model):
             raise ValidationError({'vehiculo': f'No se puede registrar un anticipo para un vehículo en estado "{self.vehiculo.estado}".'})
 
         hoy = datetime.date.today()
-        if self.fecha_anticipo > hoy:
+        
+        # Validar que la fecha del anticipo no sea en el futuro
+        if self.fecha_anticipo and self.fecha_anticipo > hoy:
             raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser futura.'})
-        if (hoy - self.fecha_anticipo).days > 30:
+
+        # Validar que no sea mayor a 30 días en el pasado
+        if self.fecha_anticipo and (hoy - self.fecha_anticipo).days > 30:
             raise ValidationError({'fecha_anticipo': 'La fecha del anticipo no puede ser anterior a 30 días.'})
+        
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         skip_validation = kwargs.pop('skip_validation', False)
@@ -736,6 +742,13 @@ class CuotaCredito(models.Model):
             if not self.forma_pago_cuota:
                 raise ValidationError({'forma_pago_cuota': 'Obligatoria cuando la cuota está pagada.'})
 
+    # Si se cargaron los datos de pago pero no se marcó el estado, bloquear:
+    # evita que quede un pago registrado sin confirmar explicitamente el cierre de la cuota.
+        if self.estado != 'pagada' and self.monto_pagado and self.fecha_pago_real and self.forma_pago_cuota:
+            raise ValidationError({
+                'estado': 'Cargó los datos de pago pero el estado sigue en "%s". Debe marcar el estado como "Pagada" para confirmar el registro del pago.' % self.estado
+            })
+
         hoy = datetime.date.today()
         if self.fecha_pago_real and self.fecha_pago_real > hoy:
             raise ValidationError({'fecha_pago_real': 'La fecha de pago no puede ser futura.'})
@@ -746,7 +759,7 @@ class CuotaCredito(models.Model):
             self.full_clean()
         super().save(*args, **kwargs)
 
-        # Si todas las cuotas del crédito están pagadas, marca el crédito como completado
+    # Si todas las cuotas del crédito están pagadas, marca el crédito como completado
         if self.estado == 'pagada':
             pendientes = self.credito_interno.cuotas.exclude(estado='pagada').exists()
             if not pendientes:
