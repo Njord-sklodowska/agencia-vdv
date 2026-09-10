@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
+    path('api-auth/', include('rest_framework.urls')),
     # APPS DEL PROYECTO
     path('api/usuario/', include('usuario.urls')),
     path('api/sucursal/', include('sucursal.urls')),
@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/parametro_sistema/', include('parametro_sistema.urls')),
     path('api/clientes/', include('clientes.urls')),
     path('api/auditoria/', include('auditoria.urls')),
+    path('api/documentacion/', include('documentacion.urls')),
     #path('api/ventas/', include('ventas.urls')),
 
     # JWT AUTH
