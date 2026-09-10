@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logoGia from '../../assets/gia.png';
+import { axiosInstance } from '../../api/axiosConfig';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isHovered, setIsHovered] = useState(false);
+  const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   const styles = {
     // page: Ahora usa width: 100% para asegurar que el navegador maneje el ancho correctamente
@@ -21,8 +26,8 @@ const Login = () => {
     },
     // card: width 90% hace que se encoja automáticamente en pantallas pequeñas
     card: {
-      width: '90%', 
-      maxWidth: '350px', 
+      width: '90%',
+      maxWidth: '350px',
       background: '#dddcdc',
       padding: '40px 30px',
       borderRadius: '15px',
@@ -37,7 +42,7 @@ const Login = () => {
       top: '-60px',
       left: '50%',
       transform: 'translateX(-50%)',
-      width: '80%', 
+      width: '80%',
       maxWidth: '260px',
       height: '90px',
       borderRadius: '10px',
@@ -64,12 +69,32 @@ const Login = () => {
       cursor: 'pointer',
       fontWeight: 'bold',
       boxShadow: 'inset 2px 2px 3px rgba(223, 223, 223, 0.6), inset -2px -2px 3px rgba(3, 1, 1, 0.3)',
-      backgroundImage: isHovered 
-        ? 'linear-gradient(to bottom, #c60e0e 0%, #370303 100%)' 
-        : 'linear-gradient(to bottom, #e90b0b 0%, #7d0b0b 100%)', 
-      transition: 'all 0.3s ease'
+      backgroundImage: isHovered
+        ? 'linear-gradient(to bottom, #c60e0e 0%, #370303 100%)'
+        : 'linear-gradient(to bottom, #e90b0b 0%, #7d0b0b 100%)',
+      transition: 'all 0.3s ease',
+      opacity: cargando ? 0.7 : 1,
     },
-    link: { fontSize: '0.8rem', color: '#141414', marginTop: '15px', display: 'block', textDecoration: 'none' }
+    link: { fontSize: '0.8rem', color: '#141414', marginTop: '15px', display: 'block', textDecoration: 'none' },
+    error: { fontSize: '0.85rem', color: '#c60e0e', marginTop: '15px', marginBottom: 0 },
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setCargando(true);
+
+    try {
+      const response = await axiosInstance.post('/token/', { username, password });
+      localStorage.setItem('accessToken', response.data.access);
+      localStorage.setItem('refreshToken', response.data.refresh);
+      navigate('/');
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+      setError('Usuario o contraseña incorrectos.');
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -78,32 +103,35 @@ const Login = () => {
         <div style={styles.logoContainer}>
           <img src={logoGia} alt="Logo GIA" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
-        
+
         <h2 style={styles.title}>Bienvenido</h2>
         <p style={styles.subtitle}>Inicia sesión en tu cuenta</p>
 
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form onSubmit={handleSubmit}>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Usuario</label>
-            <input type="text" style={styles.input} onChange={(e) => setEmail(e.target.value)} />
+            <input type="text" style={styles.input} value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Contraseña</label>
-            <input type="password" style={styles.input} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          
+
           <div style={styles.buttonContainer}>
-            <button 
-                type="submit" 
+            <button
+                type="submit"
                 style={styles.button}
+                disabled={cargando}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-              Ingresar
+              {cargando ? 'Ingresando...' : 'Ingresar'}
             </button>
           </div>
+
+          {error && <p style={styles.error}>{error}</p>}
         </form>
-        
+
         <a href="#" style={styles.link}>¿Olvidaste tus datos?</a>
       </div>
     </div>

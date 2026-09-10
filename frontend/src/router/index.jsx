@@ -4,7 +4,10 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import InventarioPage from '../features/inventario/pages/InventarioPage';
 import VehiculosForm from '../features/inventario/components/VehiculosForm';
 import ClientesPage from '../features/clientes/pages/ClientesPage';
-import ClientesForm from '../features/clientes/components/ClientesForm'; 
+import ClientesForm from '../features/clientes/components/ClientesForm';
+import DocumentacionPage from '../features/documentacion/pages/DocumentacionPage';
+import DocumentacionForm from '../features/documentacion/components/DocumentacionForm';
+import DocumentacionEditarPage from '../features/documentacion/pages/DocumentacionEditarPage';
 import Login from '../pages/auth/Login'; // Asegúrate que esta ruta sea correcta
 
 export const router = createBrowserRouter([
@@ -44,10 +47,34 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path: 'clientes/nuevo', 
+        path: 'clientes/nuevo',
         element: (
           <div className="p-4">
             <ClientesForm />
+          </div>
+        )
+      },
+      {
+        path: 'documentacion',
+        element: (
+          <div className="p-4">
+            <DocumentacionPage />
+          </div>
+        )
+      },
+      {
+        path: 'documentacion/nuevo',
+        element: (
+          <div className="p-4">
+            <DocumentacionForm />
+          </div>
+        )
+      },
+      {
+        path: 'documentacion/editar/:id',
+        element: (
+          <div className="p-4">
+            <DocumentacionEditarPage />
           </div>
         )
       },

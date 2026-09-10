@@ -37,3 +37,6 @@ backend/sucursales/
 
 inventario/fixtures/
 inventario/management
+
+# Archivos subidos por usuarios (PDFs de documentación, etc.)
+media/
