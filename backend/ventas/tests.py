@@ -831,3 +831,67 @@ class CalculosFinancierosEdgeCasesTestCase(TestCase):
         response = client.post(f'/api/ventas/operaciones/{self.operacion.id}/confirmar/')
         self.assertEqual(response.status_code, 400)
         self.assertIn('no coincide', str(response.data))
+
+class PrecioOriginalSnapshotTestCase(TestCase):
+    """
+    Prueba el fix: precio_original se fija solo al crear la operación,
+    y no se pisa silenciosamente si el precio del vehículo cambia después
+    (incluyendo guardados con skip_validation=True, como los que usan
+    confirmar/cancelar/completar en el viewset).
+    """
+
+    def setUp(self):
+        self.sucursal = Sucursal.objects.create(
+            nombre='Sucursal Snapshot', direccion='Calle Snap 1',
+            ciudad='Mendoza', provincia='Mendoza',
+        )
+        self.marca = Marca.objects.create(nombre='Fiat')
+        self.modelo = Modelo.objects.create(marca=self.marca, nombre='Cronos', carroceria='sedan')
+        self.usuario = Usuario.objects.create_user(username='snapshot_test', password='test12345')
+        self.cliente = Cliente.objects.create(
+            tipo_persona='fisica', dni_cuit='30666777888', cuil='20666777881',
+            condicion_iva='consumidor_final', nombre='Nico', apellido='Snap',
+            telefono='2618889900', domicilio_real='Calle Snap 2',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo,
+            condicion_vehiculo='0km', vin='SNAPTEST0000000X1',
+            anio=2026, color='Gris', precio_costo=7000000, precio=9000000,
+            descripcion_tecnica='Test snapshot', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='SNAP-0001',
+            kilometraje=5,
+        )
+
+    def test_precio_original_no_cambia_si_el_vehiculo_cambia_de_precio_despues(self):
+        from ventas.models import OperacionVenta
+
+        operacion = OperacionVenta.objects.create(
+            sucursal=self.sucursal, cliente=self.cliente,
+            vehiculo_vendido=self.vehiculo, vendedor=self.usuario,
+            usuario_registro=self.usuario, fecha_operacion=datetime.date.today(),
+        )
+        precio_original_al_crear = operacion.precio_original
+        self.assertEqual(precio_original_al_crear, self.vehiculo.precio)  # 9000000
+
+        # El precio del vehículo cambia DESPUÉS de crear la operación
+        self.vehiculo.precio = Decimal('12000000')
+        self.vehiculo.save(skip_validation=True)
+
+        # Simulamos exactamente lo que hace confirmar()/cancelar()/completar(): skip_validation=True
+        operacion.estado = 'confirmada'
+        operacion.save(skip_validation=True)
+
+        operacion.refresh_from_db()
+        self.assertEqual(operacion.precio_original, precio_original_al_crear)  # sigue en 9000000
+        self.assertNotEqual(operacion.precio_original, self.vehiculo.precio)  # no se pisó con 12000000
+
+    def test_precio_original_se_fija_correctamente_al_crear(self):
+        from ventas.models import OperacionVenta
+
+        operacion = OperacionVenta(
+            sucursal=self.sucursal, cliente=self.cliente,
+            vehiculo_vendido=self.vehiculo, vendedor=self.usuario,
+            usuario_registro=self.usuario, fecha_operacion=datetime.date.today(),
+        )
+        operacion.save()
+        self.assertEqual(operacion.precio_original, self.vehiculo.precio)

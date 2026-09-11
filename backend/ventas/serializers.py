@@ -294,6 +294,11 @@ class RegistroCobroSerializer(serializers.ModelSerializer):
         monto_mora_pagado = data.get('monto_mora_pagado', 0)
 
         if titulo:
+            #Evita registrar cobros duplicados
+            if titulo.estado == 'cobrado':
+                raise serializers.ValidationError(
+                    {'titulo': 'Este título de crédito ya se encuentra registrado como cobrado.'}
+                )
             # mora solo para pagarés
             if pago_con_mora and titulo.tipo != 'pagare':
                 raise serializers.ValidationError(
@@ -356,15 +361,13 @@ class CuotaCreditoSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        instance = self.instance
+        instance = self.instance or CuotaCredito()
         for attr, value in data.items():
             setattr(instance, attr, value)
         try:
             instance.clean()
         except ValidationError as e:
-            raise serializers.ValidationError(
-                getattr(e, 'message_dict', None) or {'non_field_errors': e.messages}
-            )
+            raise serializers.ValidationError(e.message_dict)
         return data
 
 

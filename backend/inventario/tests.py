@@ -1,13 +1,15 @@
 
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-
 from sucursal.models import Sucursal
-from inventario.models import Marca, Modelo, Vehiculo
+from inventario.models import Marca, Modelo, Vehiculo, Taller
+from django.contrib.auth import get_user_model
+import datetime
+from inventario.models import VehiculoUsado
+from rest_framework.test import APIClient
 
 
 class VehiculoTestCase(TestCase):
-
     def setUp(self):
         self.sucursal = Sucursal.objects.create(
             nombre='Del Valle Centro', direccion='Calle Falsa 123',
@@ -166,10 +168,6 @@ class VehiculoTestCase(TestCase):
         with self.assertRaises(ValidationError):
             v.soft_delete()
 
-import datetime
-
-from inventario.models import VehiculoUsado
-
 
 class VehiculoUsadoTestCase(TestCase):
 
@@ -314,3 +312,242 @@ class TrasladoVehiculoTestCase(TestCase):
             sucursal_origen=self.sucursal_destino,  # mal a propósito
             sucursal_destino=self.sucursal_origen,
             usuario_autoriza=self.usuario)
+
+
+from rest_framework.test import APIClient
+
+
+class PermisoMarcaTestCase(TestCase):
+
+    def setUp(self):
+        from usuario.models import Rol
+        self.rol_vendedor = Rol.objects.create(nombre='vendedor')
+        self.rol_admin = Rol.objects.create(nombre='administrativo')
+
+        Usuario = get_user_model()
+        self.vendedor = Usuario.objects.create_user(
+            username='test_vendedor', password='test12345', rol=self.rol_vendedor
+        )
+        self.administrativo = Usuario.objects.create_user(
+            username='test_admin', password='test12345', rol=self.rol_admin
+        )
+        self.client = APIClient()
+
+    def test_vendedor_no_puede_crear_marca(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.post('/api/inventario/marcas/', {'nombre': 'MarcaTestVendedor'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_administrativo_puede_crear_marca(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.post('/api/inventario/marcas/', {'nombre': 'MarcaTestAdmin'})
+        self.assertEqual(response.status_code, 201)
+
+
+class PermisosInventarioTestCase(TestCase):
+
+    def setUp(self):
+        from usuario.models import Rol
+        self.rol_vendedor, _ = Rol.objects.get_or_create(nombre='vendedor')
+        self.rol_admin, _ = Rol.objects.get_or_create(nombre='administrativo')
+        self.rol_gerente, _ = Rol.objects.get_or_create(nombre='gerente')
+
+        Usuario = get_user_model()
+        self.vendedor = Usuario.objects.create_user(
+            username='perm_vendedor', password='test12345', rol=self.rol_vendedor
+        )
+        self.administrativo = Usuario.objects.create_user(
+            username='perm_admin', password='test12345', rol=self.rol_admin
+        )
+        self.gerente = Usuario.objects.create_user(
+            username='perm_gerente', password='test12345', rol=self.rol_gerente
+        )
+
+        self.sucursal = Sucursal.objects.create(
+            nombre='Sucursal Permisos', direccion='Calle X 1',
+            ciudad='Mendoza', provincia='Mendoza',
+        )
+        self.marca = Marca.objects.create(nombre='MarcaPermiso')
+        self.modelo_existente = Modelo.objects.create(
+            marca=self.marca, nombre='ModeloPermiso', carroceria='sedan',
+        )
+        self.taller = Taller.objects.create(nombre='TallerPermiso')
+
+        self.vehiculo = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo_existente,
+            condicion_vehiculo='0km', vin='PERMTEST0000000X1',
+            anio=2026, color='Gris', precio_costo=5000000, precio=6000000,
+            descripcion_tecnica='Test permisos', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='PERM-0001',
+            kilometraje=5,
+        )
+
+        self.client = APIClient()
+
+    # ---------- Modelo ----------
+
+    def test_vendedor_no_puede_crear_modelo(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.post('/api/inventario/modelos/', {
+            'marca': self.marca.id, 'nombre': 'Nuevo', 'carroceria': 'sedan',
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_administrativo_puede_crear_modelo(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.post('/api/inventario/modelos/', {
+            'marca': self.marca.id, 'nombre': 'Nuevo', 'carroceria': 'sedan',
+        })
+        self.assertEqual(response.status_code, 201)
+
+    # ---------- Taller ----------
+
+    def test_vendedor_no_puede_crear_taller(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.post('/api/inventario/talleres/', {'nombre': 'Taller Nuevo'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_administrativo_puede_crear_taller(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.post('/api/inventario/talleres/', {'nombre': 'Taller Nuevo'})
+        self.assertEqual(response.status_code, 201)
+
+    # ---------- Vehiculo: lectura libre, escritura restringida ----------
+
+    def test_vendedor_puede_ver_vehiculos(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.get('/api/inventario/vehiculos/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_vendedor_no_puede_crear_vehiculo(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.post('/api/inventario/vehiculos/', {
+            'sucursal': self.sucursal.id, 'marca': self.marca.id, 'modelo': self.modelo_existente.id,
+            'condicion_vehiculo': '0km', 'vin': 'PERMTEST9999999X2',
+            'anio': 2026, 'color': 'Blanco', 'precio_costo': 5000000, 'precio': 6000000,
+            'descripcion_tecnica': 'Test', 'combustible': 'nafta', 'transmision': 'manual',
+            'puertas': 4, 'motor': '1.6L', 'numero_serie_motor': 'PERM-0002', 'kilometraje': 5,
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_administrativo_puede_crear_vehiculo(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.post('/api/inventario/vehiculos/', {
+            'sucursal': self.sucursal.id, 'marca': self.marca.id, 'modelo': self.modelo_existente.id,
+            'condicion_vehiculo': '0km', 'vin': 'PERMTEST0000000X3',
+            'anio': 2026, 'color': 'Blanco', 'precio_costo': 5000000, 'precio': 6000000,
+            'descripcion_tecnica': 'Test', 'combustible': 'nafta', 'transmision': 'manual',
+            'puertas': 4, 'motor': '1.6L', 'numero_serie_motor': 'PERM-0003', 'kilometraje': 5,
+        })
+        self.assertEqual(response.status_code, 201)
+
+    def test_vendedor_no_puede_desactivar_vehiculo(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.post(f'/api/inventario/vehiculos/{self.vehiculo.id}/desactivar/')
+        self.assertEqual(response.status_code, 403)
+
+    # ---------- VehiculoUsado: Gerente o Superadministrador ----------
+
+    def test_administrativo_no_puede_crear_vehiculo_usado(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.post('/api/inventario/vehiculos-usados/', {
+            'vehiculo': self.vehiculo.id, 'usuario_autoriza': self.administrativo.id,
+            'precio_tasacion_final': '4000000.00',
+            'fecha_ingreso': datetime.date.today().isoformat(),
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_gerente_puede_crear_vehiculo_usado(self):
+        vehiculo_usado_cond = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo_existente,
+            condicion_vehiculo='usado', vin='PERMTEST444444X49',
+            anio=2019, color='Gris', precio_costo=1, precio=4000000,
+            descripcion_tecnica='Test', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='PERM-0004',
+            kilometraje=50000, patente='PRM001', procedencia='compra_directa',
+        )
+        self.client.force_authenticate(user=self.gerente)
+        response = self.client.post('/api/inventario/vehiculos-usados/', {
+            'vehiculo': vehiculo_usado_cond.id, 'usuario_autoriza': self.gerente.id,
+            'precio_tasacion_final': '3500000.00',
+            'fecha_ingreso': datetime.date.today().isoformat(),
+        })
+        self.assertEqual(response.status_code, 201)
+
+
+class OcultamientoPrecioCostoTestCase(TestCase):
+
+    def setUp(self):
+        from usuario.models import Rol
+        self.rol_vendedor, _ = Rol.objects.get_or_create(nombre='vendedor')
+        self.rol_admin, _ = Rol.objects.get_or_create(nombre='administrativo')
+
+        Usuario = get_user_model()
+        self.vendedor = Usuario.objects.create_user(
+            username='oculto_vendedor', password='test12345', rol=self.rol_vendedor
+        )
+        self.administrativo = Usuario.objects.create_user(
+            username='oculto_admin', password='test12345', rol=self.rol_admin
+        )
+
+        self.sucursal = Sucursal.objects.create(
+            nombre='Sucursal Oculto', direccion='Calle Y 1',
+            ciudad='Mendoza', provincia='Mendoza',
+        )
+        self.vendedor.sucursal = self.sucursal
+        self.vendedor.save()
+        self.administrativo.sucursal = self.sucursal
+        self.administrativo.save()
+
+        self.marca = Marca.objects.create(nombre='MarcaOculto')
+        self.modelo = Modelo.objects.create(marca=self.marca, nombre='ModeloOculto', carroceria='sedan')
+
+        self.vehiculo = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo,
+            condicion_vehiculo='0km', vin='JCULTJTESTHHH999P',
+            anio=2026, color='Negro', precio_costo=5000000, precio=6000000,
+            descripcion_tecnica='Test oculto', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='OCULTO-0001',
+            kilometraje=5,
+        )
+
+        self.client = APIClient()
+
+    def test_vendedor_no_ve_precio_costo(self):
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.get(f'/api/inventario/vehiculos/{self.vehiculo.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('precio_costo', response.data)
+        self.assertIn('precio', response.data)  # el precio de venta sí debe verse
+
+    def test_administrativo_si_ve_precio_costo(self):
+        self.client.force_authenticate(user=self.administrativo)
+        response = self.client.get(f'/api/inventario/vehiculos/{self.vehiculo.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('precio_costo', response.data)
+
+    def test_vendedor_ve_vehiculos_en_stock_y_reservado_no_vendido(self):
+        vehiculo_reservado = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo,
+            condicion_vehiculo='0km', vin='PCULTPTEST99999X4',
+            anio=2026, color='Blanco', precio_costo=4000000, precio=5000000,
+            descripcion_tecnica='Test', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='OCULTO-0002',
+            kilometraje=5, estado='reservado',
+        )
+        vehiculo_vendido = Vehiculo.objects.create(
+            sucursal=self.sucursal, marca=self.marca, modelo=self.modelo,
+            condicion_vehiculo='0km', vin='PCULTPTEST99999X3',
+            anio=2026, color='Rojo', precio_costo=4500000, precio=5500000,
+            descripcion_tecnica='Test', combustible='nafta', transmision='manual',
+            puertas=4, motor='1.6L', numero_serie_motor='OCULTO-0003',
+            kilometraje=5, estado='vendido',
+        )
+
+        self.client.force_authenticate(user=self.vendedor)
+        response = self.client.get('/api/inventario/vehiculos/')
+        ids_visibles = [v['id'] for v in response.data]
+
+        self.assertIn(self.vehiculo.id, ids_visibles)  # en_stock
+        self.assertIn(vehiculo_reservado.id, ids_visibles)  # reservado
+        self.assertNotIn(vehiculo_vendido.id, ids_visibles)  # vendido, no debe verlo

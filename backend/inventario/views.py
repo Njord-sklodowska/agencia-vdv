@@ -4,23 +4,24 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Marca, Modelo, Vehiculo, Fotografia_Vehiculo, Taller, VehiculoUsado, TrasladoVehiculo
-from .serializers import ( MarcaSerializer, ModeloSerializer, VehiculoSerializer, FotografiaVehiculoSerializer, TallerSerializer, VehiculoUsadoSerializer, TrasladoVehiculoSerializer
-)
+from .serializers import ( MarcaSerializer, ModeloSerializer, VehiculoSerializer, FotografiaVehiculoSerializer, TallerSerializer, VehiculoUsadoSerializer, TrasladoVehiculoSerializer)
 from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
+from inventario.permissions import EsAdministrativoOSuperior
+from inventario.permissions import EsGerenteOSuperior
 
 class MarcaViewSet(viewsets.ModelViewSet):
     queryset = Marca.objects.all()
     serializer_class = MarcaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
     # solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
 class ModeloViewSet(viewsets.ModelViewSet):
     queryset = Modelo.objects.all()
     serializer_class = ModeloSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
     # solo superadministrador y administrativo pueden crear/editar/eliminar
 
 
@@ -28,14 +29,27 @@ class VehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = VehiculoSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'desactivar', 'entregar']:
+            return [IsAuthenticated(), EsAdministrativoOSuperior()]
+        return [IsAuthenticated()]
+
     def get_queryset(self):
-        user= self.request.user
+        user = self.request.user
         if user.is_superuser:
             return Vehiculo.objects.all()
-        return Vehiculo.objects.filter(sucursal=user.sucursal)
+
+        queryset = Vehiculo.objects.filter(sucursal=user.sucursal)
+
+        if user.rol and user.rol.nombre == 'vendedor':
+            queryset = queryset.filter(estado__in=['en_stock', 'reservado'])
+
+        return queryset
 
     def perform_create(self, serializer):
-        if self.request.user.sucursal:
+        if self.request.user.is_superuser:
+            serializer.save()  # respeta la sucursal que mande el superadmin en el body
+        elif self.request.user.sucursal:
             serializer.save(sucursal=self.request.user.sucursal)
         else:
             serializer.save()
@@ -72,7 +86,13 @@ class VehiculoViewSet(viewsets.ModelViewSet):
 class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = FotografiaVehiculoSerializer
     permission_classes = [IsAuthenticated]
-    # solo administrativo y superiores pueden cargar fotos
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), EsAdministrativoOSuperior()]
+        return [IsAuthenticated()]
+    # los vendedores solo pueden ver las fotos.
+    # solo administrativo y superiores pueden cargar fotos.
     
     def get_queryset(self):
         return Fotografia_Vehiculo.objects.filter(vehiculo_id=self.kwargs['vehiculo_pk'])
@@ -94,15 +114,15 @@ class FotografiaVehiculoViewSet(viewsets.ModelViewSet):
 class TallerViewSet(viewsets.ModelViewSet):
     queryset = Taller.objects.all()
     serializer_class = TallerSerializer
-    permission_classes = [IsAuthenticated]
-    # solo administrativo y superiores pueden crear/editar
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
 
 class VehiculoUsadoViewSet(viewsets.ModelViewSet):
     queryset = VehiculoUsado.objects.all()
     serializer_class = VehiculoUsadoSerializer
-    permission_classes = [IsAuthenticated]
-    # autorización solo por el superadministrador
+    permission_classes = [IsAuthenticated, EsGerenteOSuperior]
+    # autorización: solo Gerente o Superadministrador
+
     def get_queryset(self):
         vehiculo_id = self.request.query_params.get('vehiculo')
         if vehiculo_id:
@@ -113,6 +133,11 @@ class VehiculoUsadoViewSet(viewsets.ModelViewSet):
 class TrasladoVehiculoViewSet(viewsets.ModelViewSet):
     serializer_class = TrasladoVehiculoSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'confirmar', 'cancelar']:
+            return [IsAuthenticated(), EsAdministrativoOSuperior()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user

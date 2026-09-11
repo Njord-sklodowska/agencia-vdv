@@ -93,11 +93,23 @@ class VehiculoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errores)
 
         if self.instance:
-            datos_completos = {**self.instance.__dict__, **data}
-            datos_completos.pop('_state', None)
+            # Update (PATCH/PUT): se reconstruye usando los campos reales del objeto,
+            # pisados solo por lo que vino en este request. 
+            campos = [
+                'sucursal', 'marca', 'modelo', 'condicion_vehiculo', 'vin', 'patente',
+                'anio', 'color', 'precio_costo', 'precio', 'descripcion_tecnica',
+                'estado', 'kilometraje', 'activo', 'entregado', 'combustible',
+                'transmision', 'puertas', 'motor', 'traccion', 'numero_serie_motor',
+                'procedencia',
+            ]
+            datos_completos = {
+                campo: data.get(campo, getattr(self.instance, campo))
+                for campo in campos
+            }
             instance = Vehiculo(**datos_completos)
             instance.pk = self.instance.pk
         else:
+            # Create: no hay datos previos, se construye desde cero.
             instance = Vehiculo(**data)
         try:
             instance.clean()
@@ -108,11 +120,21 @@ class VehiculoSerializer(serializers.ModelSerializer):
 
         return data
     
-    def to_representation(self, instance): # Agrega una advertencia visible en la respuesta si el precio de venta quedó por debajo del costo. No bloquea nada, solo informa - el bloqueo real está en validate().
+    
+    def to_representation(self, instance):
         data = super().to_representation(instance)
-        data = super().to_representation(instance)
+        # Agrega una advertencia visible en la respuesta si el precio de venta quedó por debajo del costo. No bloquea nada, solo informa - el bloqueo real esta en validate().
+
         if instance.precio and instance.precio_costo and instance.precio < instance.precio_costo:
             data['advertencias'] = ['El precio de venta es inferior al costo registrado.']
+
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            usuario = request.user
+            es_vendedor = usuario.rol and usuario.rol.nombre == 'vendedor' and not usuario.is_superuser
+            if es_vendedor:
+                data.pop('precio_costo', None)
+
         return data
 
 class VehiculoUsadoSerializer(serializers.ModelSerializer):
@@ -159,10 +181,15 @@ class VehiculoUsadoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_precio_tasacion_final(self, value):
-        taller = self.initial_data.get('taller')
-        precio_info_auto = self.initial_data.get('precio_info_auto')
-        porcentaje = self.initial_data.get('porcentaje_deduccion')
-        
+        if self.instance:
+            taller = self.initial_data.get('taller', self.instance.taller_id)
+            precio_info_auto = self.initial_data.get('precio_info_auto', self.instance.precio_info_auto)
+            porcentaje = self.initial_data.get('porcentaje_deduccion', self.instance.porcentaje_deduccion)
+        else:
+            taller = self.initial_data.get('taller')
+            precio_info_auto = self.initial_data.get('precio_info_auto')
+            porcentaje = self.initial_data.get('porcentaje_deduccion')
+
         if taller and precio_info_auto and porcentaje:
             try:
                 esperado = Decimal(str(precio_info_auto)) - (Decimal(str(precio_info_auto)) * Decimal(str(porcentaje)) / Decimal('100'))

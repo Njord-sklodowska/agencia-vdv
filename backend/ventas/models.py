@@ -61,6 +61,9 @@ class OperacionVenta(models.Model):
         if self.cliente_cotitular and self.cliente_cotitular == self.cliente:
             raise ValidationError({'cliente_cotitular': 'El cotitular no puede ser el mismo que el titular.'})
 
+        if self.vehiculo_vendido and self.vehiculo_usado_entregado and self.vehiculo_vendido == self.vehiculo_usado_entregado:
+            raise ValidationError({'vehiculo_usado_entregado': 'El vehículo usado entregado no puede ser el mismo que el vehículo que se está vendiendo.'})
+
         if self.estado == 'cancelada' and not self.observaciones:
             raise ValidationError({'observaciones': 'Debe indicar el motivo de la cancelación.'})
 
@@ -118,9 +121,13 @@ class OperacionVenta(models.Model):
             
     def save(self, *args, **kwargs):
         skip_validation = kwargs.pop('skip_validation', False)
-        
-        if self.vehiculo_vendido:
+
+        # precio_original queda fijo como precio SOLO al crear la operación.
+        # Al ser editado posteriormente no se vuelve a tomar del vehiculo, para no pisar
+        # silenciosamente el precio acordado si el vehículo cambia de precio después.
+        if self.pk is None and self.vehiculo_vendido:
             self.precio_original = self.vehiculo_vendido.precio
+
         if self.vehiculo_usado_entregado:
             self.valor_vehiculo_usado = self.vehiculo_usado_entregado.precio_costo or 0
         else:
@@ -239,14 +246,27 @@ class Anticipo(models.Model):
         
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        estado_anterior = None
+        
+        if not is_new:
+            # Obtenemos el estado anterior de la base de datos para comparar
+            estado_anterior = Anticipo.objects.filter(pk=self.pk).values_list('estado', flat=True).first()
+
         skip_validation = kwargs.pop('skip_validation', False)
         if not skip_validation:
             self.full_clean()
+            
         super().save(*args, **kwargs)
+        
         # Al crear el anticipo, cambia el vehículo a reservado
         if is_new:
             self.vehiculo.estado = 'reservado'
             self.vehiculo.save(skip_validation=True)
+        # Si pasa a devuelto o retenido, liberamos el vehículo a en_stock
+        elif estado_anterior != self.estado and self.estado in ['devuelto', 'retenido']:
+            if self.vehiculo.estado == 'reservado':
+                self.vehiculo.estado = 'en_stock'
+                self.vehiculo.save(skip_validation=True)
 
     def __str__(self):
         return f"Anticipo ${self.monto} - {self.vehiculo}"
@@ -458,12 +478,20 @@ class RegistroCobro(models.Model):
 
     def clean(self):
         hoy = datetime.date.today()
+
+        # No se puede registrar un cobro sobre un título ya cobrado (evita duplicar el cobro,
+        # sin importar si se llega desde la acción registrar_cobro/ o el POST directo de este endpoint).
+        if not self.pk and self.titulo_id:
+            titulo = self.titulo
+            if titulo.estado == 'cobrado':
+                raise ValidationError('Este título ya fue cobrado. No se puede registrar un cobro duplicado.')
+
         if self.fecha_pago_real and self.fecha_pago_real > hoy:
             raise ValidationError({'fecha_pago_real': 'La fecha de pago no puede ser futura.'})
 
         if self.pago_con_mora and (self.titulo.tipo != 'pagare' or self.titulo.estado != 'vencido'):
             raise ValidationError({'pago_con_mora': 'El pago con mora solo aplica a pagarés en estado vencido.'})
-
+        
         if self.monto_mora_pagado > 0 and self.titulo.tipo != 'pagare':
             raise ValidationError({'monto_mora_pagado': 'El monto de mora solo aplica para pagarés.'})
 

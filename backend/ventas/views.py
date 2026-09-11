@@ -8,15 +8,18 @@ from .models import OperacionVenta, FormaPago, Anticipo, TituloCredito, Registro
 from .serializers import OperacionVentaSerializer, FormaPagoSerializer, AnticipoSerializer, TituloCreditoSerializer, RegistroCobroSerializer, EntidadFinancieraSerializer, CreditoInternoSerializer, CuotaCreditoSerializer, FinanciamientoExternoSerializer
 from inventario.models import Vehiculo
 from rest_framework.exceptions import ValidationError
+from inventario.permissions import EsAdministrativoOSuperior
 
 
 class OperacionVentaViewSet(viewsets.ModelViewSet):
     serializer_class = OperacionVentaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
     def get_queryset(self):
-        # TODO: filtrar por sucursal del usuario cuando Sergio termine roles
-        return OperacionVenta.objects.all()
+        user = self.request.user
+        if user.is_superuser:
+            return OperacionVenta.objects.all()
+        return OperacionVenta.objects.filter(sucursal=user.sucursal)
 
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
@@ -164,7 +167,7 @@ class OperacionVentaViewSet(viewsets.ModelViewSet):
 
 class FormaPagoViewSet(viewsets.ModelViewSet):
     serializer_class = FormaPagoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
     def get_queryset(self):
         return FormaPago.objects.filter(operacion_id=self.kwargs['operacion_pk'])
@@ -208,16 +211,17 @@ class FormaPagoViewSet(viewsets.ModelViewSet):
 
 class AnticipoViewSet(viewsets.ModelViewSet):
     serializer_class = AnticipoSerializer
-    permission_classes = [IsAuthenticated]
-    # TODO: solo administrativo y superiores pueden registrar anticipos
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
     def get_queryset(self):
-        # TODO: filtrar por sucursal del usuario cuando Sergio termine roles
-        return Anticipo.objects.all()
+        user = self.request.user
+        if user.is_superuser:
+            return Anticipo.objects.all()
+        return Anticipo.objects.filter(vehiculo__sucursal=user.sucursal)
     
 class TituloCreditoViewSet(viewsets.ModelViewSet):
     serializer_class = TituloCreditoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
     def get_queryset(self):
         queryset = TituloCredito.objects.all()
@@ -248,7 +252,7 @@ class TituloCreditoViewSet(viewsets.ModelViewSet):
 
 class RegistroCobroViewSet(viewsets.ModelViewSet):
     serializer_class = RegistroCobroSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
     http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
@@ -264,13 +268,13 @@ class RegistroCobroViewSet(viewsets.ModelViewSet):
 class EntidadFinancieraViewSet(viewsets.ModelViewSet):
     queryset = EntidadFinanciera.objects.all()
     serializer_class = EntidadFinancieraSerializer
-    permission_classes = [IsAuthenticated]
-    # TODO: solo administrativo y superiores pueden crear/editar
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
+    # solo administrativo y superiores pueden crear/editar
 
 
 class FinanciamientoExternoViewSet(viewsets.ModelViewSet):
     serializer_class = FinanciamientoExternoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
 
     def get_queryset(self):
         queryset = FinanciamientoExterno.objects.all()
@@ -282,8 +286,8 @@ class FinanciamientoExternoViewSet(viewsets.ModelViewSet):
 
 class CreditoInternoViewSet(viewsets.ModelViewSet):
     serializer_class = CreditoInternoSerializer
-    permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'head', 'options']  # sin update/delete el credito no se edita una vez creado
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
+    http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         queryset = CreditoInterno.objects.all()
@@ -295,9 +299,9 @@ class CreditoInternoViewSet(viewsets.ModelViewSet):
 
 class CuotaCreditoViewSet(viewsets.ModelViewSet):
     serializer_class = CuotaCreditoSerializer
-    permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'patch', 'head', 'options']  # las cuotas no se crean/borran manualmente
-
+    permission_classes = [IsAuthenticated, EsAdministrativoOSuperior]
+    http_method_names = ['get', 'patch', 'head', 'options']
+    
     def get_queryset(self):
         return CuotaCredito.objects.filter(credito_interno_id=self.kwargs['credito_pk'])
 
