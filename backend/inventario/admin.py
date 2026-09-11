@@ -6,7 +6,7 @@ from .models import Vehiculo, Marca, Modelo, Fotografia_Vehiculo, Taller, Vehicu
 # --- Inlines ---
 class FotografiaInline(admin.TabularInline):
     model = Fotografia_Vehiculo
-    extra = 0  # Esto elimina las filas extra que no quieres
+    extra = 0  # elimino las filas extras
     max_num = 10
     fields = ('orden', 'es_portada', 'archivo', 'imagen_tag')
     readonly_fields = ('imagen_tag', 'tamano_bytes', 'mime_type')
@@ -52,11 +52,11 @@ class VehiculoAdmin(admin.ModelAdmin):
     )
     
     inlines = [FotografiaInline]
-    list_display = ('id', 'marca', 'modelo', 'patente', 'estado','vin', 'precio_costo', 'precio', 'entregado', 'activo')
+    list_display = ('marca', 'modelo', 'patente', 'estado', 'entregado', 'precio', 'activo')
     list_filter = ('estado', 'entregado', 'activo' , 'condicion_vehiculo', 'marca')
     search_fields = ('patente', 'vin')
 
-    # 1. Deshabilitamos el borrado físico total (reemplazado por desactivación)
+    # 1. deshabilita el borrado físico total (reemplazado por desactivación)
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -114,7 +114,7 @@ class TallerAdmin(admin.ModelAdmin):
 
 @admin.register(VehiculoUsado)
 class VehiculoUsadoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'vehiculo', 'taller', 'precio_tasacion_final', 'fecha_ingreso')
+    list_display = ('vehiculo', 'taller', 'precio_tasacion_final', 'fecha_ingreso')
     list_filter = ('taller',)
     search_fields = ('vehiculo__patente',)
     readonly_fields = ('fecha_alta', 'updated_at')
@@ -124,7 +124,6 @@ class VehiculoUsadoAdmin(admin.ModelAdmin):
             kwargs['queryset'] = Vehiculo.objects.filter(condicion_vehiculo='usado')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
         
-   
 
 @admin.register(TrasladoVehiculo)
 class TrasladoVehiculoAdmin(admin.ModelAdmin):

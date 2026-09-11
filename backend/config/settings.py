@@ -1,3 +1,12 @@
+import pymysql
+pymysql.install_as_MySQLdb()
+
+# Parche estricto para MariaDB en Django 5: deshabilita RETURNING
+from django.db.backends.mysql import base, features
+base.DatabaseWrapper.check_database_version_supported = lambda self: None
+features.DatabaseFeatures.can_return_columns_from_insert = False
+features.DatabaseFeatures.can_return_rows_from_bulk_insert = False
+
 from pathlib import Path
 import os
 
@@ -42,7 +51,7 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'usuario.Usuario'
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -81,7 +90,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agencia_vdv',
         'USER': 'root',
-        'PASSWORD': '',       
+        'PASSWORD': '',
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {

@@ -1,17 +1,13 @@
-
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 .env
-venv/
-modelos_recuperados.py
+.venv/
 
 # Django
 db.sqlite3
-*.log
-media/
+*.sqlite3
 
 # Node
 node_modules/
@@ -23,7 +19,6 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
-
 # PyCharm
 .idea/
 
